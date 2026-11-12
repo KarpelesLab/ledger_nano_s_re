@@ -70,9 +70,8 @@ Crops: [U1](docs/img/u1_stm32f042k6.jpg) · [U2](docs/img/u2_marking.jpg) ·
 
 ## U2 secure element pinout
 
-U2 is a DFN8 measuring 4.0 × 4.2 mm. That is **not** the MFF2 SIM package
-(5×6 mm), so there is no reason to expect the standard MFF2 / ISO 7816
-pinout. The pinout is ST's own for this package.
+U2 is a DFN8 measuring 4.0 × 4.2 mm, smaller than the MFF2 SIM package (5×6 mm).
+The pinout is close to MFF2 but not identical (see below).
 
 **Pin numbering:** the package dot is at the bottom-right in the front photos,
 so going counter-clockwise from the top view:
@@ -96,21 +95,35 @@ so going counter-clockwise from the top view:
 | 3 | STM32 **PA9** (USART1_TX), via the back | **I/O** |
 | 4 | Not connected | NC |
 | 5 | STM32 **PA8** (USART1_CK / MCO) | CLK |
-| 6 | STM32 **PA10** | RST (GPIO)? |
+| 6 | STM32 **PA10** (GPIO) | **RST** (MFF2-like position) |
 | 7 | +3V0 rail (U3 out, U1.1), decoupled by C2 | **VCC** |
 | 8 | Not connected | NC |
 
 Crop: [u2_context.jpg](docs/img/u2_context.jpg)
 
-The observed GND = 2 / VCC = 7 does not match the standard MFF2 pin mapping
-either, which is consistent with this being a different package. The ST31H320
-datasheet (NDA-only) would have the real pinout, so we have to map it from the
-board.
+**Relation to MFF2:** the pinout is MFF2-like, with the unused pair moved to
+the other end of the package. Pins are listed as MFF2 (ETSI TS 102 671, from
+memory) → U2:
 
-Pins 3, 5 and 6 land on PA9 (USART1_TX), PA8 (USART1_CK) and PA10. That is
-the STM32 USART1 **smartcard-mode** wiring: TX as the half-duplex I/O line,
-CK as the card clock, plus a GPIO that is probably RST. So the MCU ↔ SE link
-is very likely ISO 7816-3 over USART1. See [docs/tracing.md](docs/tracing.md).
+| Pin | MFF2 | U2 |
+|-----|------|----|
+| 1 | C5 GND | NC |
+| 2 | C6 SWP | GND |
+| 3 | C7 I/O | I/O |
+| 4 | C8 NC | NC |
+| 5 | C4 NC | CLK |
+| 6 | C3 CLK | RST |
+| 7 | C2 RST | VCC |
+| 8 | C1 VCC | NC |
+
+Pins 5–8 are the MFF2 sequence (unused, CLK, RST, VCC) with the unused pin
+moved to the end. Pins 1–4 have I/O and the unused SWP slot swapped compared
+to a straight shift. That puts **pin 6 = RST**, so PA10 is the SE reset.
+
+Pins 3, 5 and 6 go to PA9 (USART1_TX), PA8 (USART1_CK) and PA10 (GPIO). That
+is the STM32 USART1 **smartcard-mode** wiring: TX as the half-duplex I/O line,
+CK as the card clock, and a GPIO as RST. So the MCU ↔ SE link is ISO 7816-3
+over USART1. See [docs/tracing.md](docs/tracing.md).
 
 ## Back side / test access
 
