@@ -9,7 +9,7 @@ The project is in [`kicad/`](../kicad/) (KiCad 10). Open
 |------|-------|
 | Board outline | 35.66 × 12.27 mm, with the two clip notches on the top edge. Measured from photos (about ±1%). |
 | Footprints | All 31 parts (U1–U4, J1, J2, L1, S1, S2, 9 caps, 4 resistors, 14 back-side test pads) are placed at their measured positions. Accuracy is about ±0.2 mm. |
-| Photo underlays | The stitched front photo is on layer **User.1**, the mirrored back photo on **User.2**, and the front with components removed on **User.3** (best for tracing top copper). Both are scaled and aligned to the board outline and locked. Toggle them in the Layers panel to trace copper. |
+| Photo underlays | The stitched front photo is on layer **User.1**, the mirrored back photo on **User.2**, and the front with components removed on **User.3** (best for tracing top copper). All three are scaled and aligned to the board outline and locked. Toggle them in the Layers panel to trace copper. |
 | Schematic | All symbols, linked to their footprints (F8 / "Update PCB from schematic" works). Nets are attached with labels. |
 | Nets | **Partial on purpose.** Only connections that are confirmed or strongly supported are entered (table below). |
 | Tracks / vias | **Not routed yet.** That is the next step, tracing over the photo layers. |
