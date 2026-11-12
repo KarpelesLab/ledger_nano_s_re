@@ -21,6 +21,31 @@ photos):
 ![front](img/kicad_overlay_front.jpg)
 ![back](img/kicad_overlay_back.jpg)
 
+## 3D renders
+
+Regenerate with `tools/render_3d.py`, which renders a copy of the board with
+the photo underlays stripped.
+
+![top](img/render_top.png)
+![bottom](img/render_bottom.png)
+![iso](img/render_iso.png)
+![iso back](img/render_iso_back.png)
+![edge](img/render_edge.png)
+
+- Board: **0.8 mm** FR4, blue mask, white silkscreen, HASL finish (stackup in
+  the board file).
+- Silkscreen reference labels are placed where they are printed on the real
+  board (measured on the photo), including the back `YWX 1751` and the
+  header pin-1 dot.
+- Custom VRML models (`kicad/ledger_nano_s.3dshapes/`) are simple coloured
+  boxes sized from the photos: U2 (DFN8 4.0×4.2), J2 (flip-lock FPC with
+  white actuator) and S1/S2 (side-push switch, metal frame and Kapton top,
+  plunger past the board edge, body offset about 0.5 mm from the land centre).
+- KiCad 10 doesn't ship the models for these stock footprints, so the
+  closest shipped model is used instead: U1 → QFN-32 5×5, U4 → DFN-8 4×4
+  (EP 2.5×3.6), L1 → 3×3 mm FNR3012S, J1 → Molex 47346 micro-B (instead of
+  105017).
+
 ## Nets entered so far
 
 The nets come from photo tracing. See [tracing.md](tracing.md) for the
@@ -40,9 +65,10 @@ evidence and the confidence of each one. Summary:
 
 ## Footprint choices / assumptions
 
-- **U1** `UFQFPN-32-1EP_5x5mm_P0.5mm_EP3.5x3.5mm_ThermalVias`, rotated 180°.
+- **U1** `UFQFPN-32-1EP_5x5mm_P0.5mm_EP3.5x3.5mm`, rotated 180°.
   Pin 1 is at the package dot (bottom-right in the photos), so PA11/PA12
-  face the USB connector.
+  face the USB connector. The plain footprint (no built-in thermal vias) is
+  used, because the 3×3 EP vias are placed as board vias.
 - **U2** custom `ST_DFN8-1EP_4.0x4.2mm_P0.98mm`, measured on the bare
   board: 8 pads 1.2 x 0.75 mm, pitch 0.98 mm, columns 4.0 mm apart, plus a
   2.1 x 3.45 mm **exposed pad** (pin 9, no vias, net unknown). The body is

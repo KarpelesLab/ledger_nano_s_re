@@ -46,6 +46,8 @@ every part placed from the photos, the photos as aligned underlay layers, and
 a schematic with the nets known so far. Details and assumptions are in
 [docs/kicad.md](docs/kicad.md).
 
+![3D render](docs/img/render_iso.png)
+
 ## Bill of materials (as seen)
 
 | Ref | Marking | Package | Identification |

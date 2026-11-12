@@ -55,7 +55,7 @@ def part(ref, fp, val, pos, rot=0, side="F", sym=None, note=""):
     P.append(dict(ref=ref, fp=fp, val=val, pos=pos, rot=rot, side=side, sym=sym, note=note))
 
 
-part("U1", "Package_DFN_QFN:UFQFPN-32-1EP_5x5mm_P0.5mm_EP3.5x3.5mm_ThermalVias", "STM32F042K6U6",
+part("U1", "Package_DFN_QFN:UFQFPN-32-1EP_5x5mm_P0.5mm_EP3.5x3.5mm", "STM32F042K6U6",
      G(1197, 732), 180, sym="MCU_ST_STM32F0:STM32F042K6Ux")
 part("U2", PRJ + ":ST_DFN8-1EP_4.0x4.2mm_P0.98mm", "ST31 SE (NBO PHL744 7B)", G(1862, 1078), 0,
      sym=PRJ + ":SE_ST31_DFN8")
@@ -203,6 +203,69 @@ def new_fp(name, descr):
     return fp
 
 
+
+# --------------------------------------------------------------------------
+# Simple VRML 3D models for the custom footprints (dimensions from the photos)
+SHAPES = os.path.join(OUT, PRJ + ".3dshapes")
+COL = {"black": (0.08, 0.08, 0.09), "metal": (0.75, 0.75, 0.78), "gold": (0.85, 0.68, 0.25),
+       "white": (0.93, 0.92, 0.88), "kapton": (0.85, 0.62, 0.08), "dark": (0.18, 0.18, 0.2),
+       "grey": (0.45, 0.45, 0.48)}
+
+
+def vrml(name, boxes):
+    """boxes: (x0, x1, y0, y1, z0, z1, colour[, transparency]) in footprint mm (y down)."""
+    out = ["#VRML V2.0 utf8"]
+    for b in boxes:
+        x0, x1, y0, y1, z0, z1, c = b[:7]
+        tr = b[7] if len(b) > 7 else 0
+        k = 1 / 2.54                       # KiCad VRML unit = 0.1 inch
+        cx, cy, cz = (x0 + x1) / 2 * k, -(y0 + y1) / 2 * k, (z0 + z1) / 2 * k
+        r, g, bl = COL[c]
+        out.append("Transform { translation %.4f %.4f %.4f children [ Shape { appearance Appearance { material "
+                   "Material { diffuseColor %.3f %.3f %.3f specularColor 0.3 0.3 0.3 shininess 0.4 "
+                   "transparency %.2f } } geometry Box { size %.4f %.4f %.4f } } ] }"
+                   % (cx, cy, cz, r, g, bl, tr, abs(x1 - x0) * k, abs(y1 - y0) * k, abs(z1 - z0) * k))
+    os.makedirs(SHAPES, exist_ok=True)
+    open(os.path.join(SHAPES, name + ".wrl"), "w").write("\n".join(out) + "\n")
+    return "${KIPRJMOD}/%s.3dshapes/%s.wrl" % (PRJ, name)
+
+
+def add_model(fp, path):
+    m = pcbnew.FP_3DMODEL()
+    m.m_Filename = path
+    fp.Add3DModel(m)
+
+
+def model_u2():
+    b = [(-2.0, 2.0, -2.1, 2.1, 0.02, 0.55, "black"), (1.35, 1.65, 1.45, 1.75, 0.55, 0.56, "grey")]
+    for i in range(4):
+        y = (1.5 - i) * 0.98
+        for x in (1.75, -2.0):
+            b.append((x, x + 0.27, y - 0.17, y + 0.17, 0.0, 0.2, "metal"))
+    return vrml("ST_DFN8_4.0x4.2mm", b)
+
+
+def model_j2():
+    b = [(0.6, 5.0, -4.0, 4.0, 0.0, 0.6, "dark"),          # housing
+         (1.64, 5.14, -4.64, 4.64, 0.6, 0.95, "white"),     # flip-lock actuator (closed)
+         (0.21, 1.64, -4.64, -3.95, 0.0, 0.95, "white"), (0.21, 1.64, 3.95, 4.64, 0.0, 0.95, "white"),
+         (2.07, 4.3, -5.43, -4.64, 0.0, 0.15, "metal"), (2.07, 4.3, 4.64, 5.43, 0.0, 0.15, "metal")]
+    for i in range(12):
+        y = -2.75 + 0.5 * i
+        b.append((-0.45, 0.7, y - 0.1, y + 0.1, 0.0, 0.12, "gold"))
+    return vrml("FPC_12P_P0.5mm_FlipLock", b)
+
+
+def model_sw():
+    c = -0.5                                                 # body sits ~0.5 mm left of the land centre
+    b = [(c - 1.75, c + 1.75, -1.15, 1.3, 0.0, 1.3, "metal"),
+         (c - 1.45, c + 1.45, -1.0, 1.25, 1.3, 1.36, "kapton", 0.3),
+         (c - 0.32, c + 0.32, 1.3, 1.8, 0.35, 0.95, "dark")]     # side plunger, past the board edge
+    for x in (-1.9, 1.9):
+        for y in (-0.69, 0.69):
+            b.append((x - 0.6, x + 0.6, y - 0.3, y + 0.3, 0.0, 0.15, "metal"))
+    return vrml("SW_SideTact_LedgerNanoS", b)
+
 def build_footprints():
     if os.path.isdir(FPLIB):
         shutil.rmtree(FPLIB)
@@ -226,6 +289,7 @@ def build_footprints():
     fp_line(fp, pcbnew.F_Fab, (1.5, 2.1), (2.0, 1.6))
     fp_rect(fp, pcbnew.F_CrtYd, -2.85, -2.4, 2.85, 2.4, 0.05)
     fp_line(fp, pcbnew.F_SilkS, (2.75, 2.25), (2.75, 2.24), 0.3)  # pin-1 dot
+    add_model(fp, model_u2())
     fps.append(fp)
 
     # J2: 12-pin 0.5mm FPC, contacts on the left, pin 1 at top, mounting tabs to the right
@@ -241,6 +305,7 @@ def build_footprints():
     fp_rect(fp, pcbnew.F_Fab, 0.4, -5.6, 5.4, 5.6)
     fp_rect(fp, pcbnew.F_CrtYd, -0.8, -6.2, 5.8, 6.2, 0.05)
     fp_line(fp, pcbnew.F_SilkS, (-0.9, -2.75), (-1.3, -2.75), 0.15)
+    add_model(fp, model_j2())
     fps.append(fp)
 
     # S1/S2: side-actuated tact switch, 4 pads 1.75x1.0mm at x=+-1.9, y=+-0.69 (measured on the
@@ -257,6 +322,7 @@ def build_footprints():
     fp_rect(fp, pcbnew.F_Fab, -1.8, -1.2, 1.8, 1.2)
     fp_rect(fp, pcbnew.F_Fab, -0.8, 1.2, 0.8, 2.0)   # actuator
     fp_rect(fp, pcbnew.F_CrtYd, -3.0, -1.4, 3.0, 2.2, 0.05)
+    add_model(fp, model_sw())
     fps.append(fp)
 
     io = pcbnew.PCB_IO_MGR.FindPlugin(pcbnew.PCB_IO_MGR.KICAD_SEXP)
@@ -474,6 +540,21 @@ def notch(board, xc, r):
     board.Add(s)
 
 
+# Stock footprints whose own 3D model is not shipped with KiCad 10 -> closest shipped model
+MODEL_SUB = {"U1": "Package_DFN_QFN.3dshapes/QFN-32-1EP_5x5mm_P0.5mm_EP3.45x3.45mm.step",
+             "U4": "Package_DFN_QFN.3dshapes/DFN-8-1EP_4x4mm_P0.8mm_EP2.5x3.6mm.step",
+             "L1": "Inductor_SMD.3dshapes/L_Changjiang_FNR3012S.step",
+             "J1": "Connector_USB.3dshapes/USB_Micro-B_Molex_47346-0001.step"}
+
+# Reference labels as printed on the real board: (x, y, angle) in board mm, measured on the photo
+SILK = {"J1": (2.8, 2.6, 0), "C5": (7.0, 1.95, 0), "U1": (10.55, 2.85, 0), "S2": (5.0, 11.2, 90),
+        "C12": (13.7, 2.95, 0), "U3": (16.85, 1.65, 0), "C10": (15.5, 6.0, 0), "U2": (18.3, 7.4, 0),
+        "R1": (12.75, 8.0, 0), "C2": (13.1, 8.9, 0), "J2": (22.9, 0.8, 0), "R2": (27.35, 1.0, 90),
+        "R4": (28.2, 1.0, 90), "U4": (30.1, 1.0, 0), "R3": (29.4, 3.3, 0), "C1": (25.75, 5.3, 0),
+        "L1": (31.0, 5.9, 270), "C7": (27.55, 6.6, 0), "C8": (27.55, 7.65, 0), "C9": (27.55, 8.75, 0),
+        "C3": (34.3, 9.6, 270), "S1": (34.5, 11.2, 90)}
+
+
 def build_pcb(sym_uuids):
     board = pcbnew.BOARD()
     board.SetCopperLayerCount(2)
@@ -528,6 +609,36 @@ def build_pcb(sym_uuids):
             if n:
                 pd.SetNet(nets[n])
 
+    for fp in board.GetFootprints():
+        ref = fp.GetReference()
+        if ref in MODEL_SUB:
+            fp.Models()[0].m_Filename = "${KICAD10_3DMODEL_DIR}/" + MODEL_SUB[ref]
+        t = fp.Reference()
+        if ref in SILK:
+            x, y, a = SILK[ref]
+            t.SetPosition(V(OX + x, OY + y))
+            t.SetTextAngleDegrees(a)
+            t.SetTextSize(pcbnew.VECTOR2I(mm(0.85), mm(0.95)))
+            t.SetTextThickness(mm(0.15))
+        else:
+            t.SetVisible(False)
+        if ref.startswith("TP") and int(ref[2:]) > 5:      # bare solder-bumped pads, no silk ring
+            for it in list(fp.GraphicalItems()):
+                if it.GetLayer() in (pcbnew.F_SilkS, pcbnew.B_SilkS):
+                    fp.Remove(it)
+
+    # back silkscreen: pin-1 dot of the SWD header and the date code
+    dot = pcbnew.PCB_SHAPE(board)
+    dot.SetShape(pcbnew.SHAPE_T_CIRCLE); dot.SetLayer(pcbnew.B_SilkS)
+    dot.SetCenter(V(OX + 3.57, OY + 1.14)); dot.SetEnd(V(OX + 3.57 + 0.2, OY + 1.14)); dot.SetWidth(mm(0.4))
+    board.Add(dot)
+    for txt, x in (("YWX", 21.1), ("1751", 15.1)):
+        t = pcbnew.PCB_TEXT(board)
+        t.SetText(txt); t.SetLayer(pcbnew.B_SilkS); t.SetMirrored(True)
+        t.SetPosition(V(OX + x, OY + 11.05)); t.SetTextSize(pcbnew.VECTOR2I(mm(1.1), mm(1.2)))
+        t.SetTextThickness(mm(0.2))
+        board.Add(t)
+
     for x, y, n in VIAS:
         v = pcbnew.PCB_VIA(board)
         v.SetPosition(V(OX + x, OY + y)); v.SetWidth(mm(0.6)); v.SetDrill(mm(0.3))
@@ -568,6 +679,23 @@ def prep_images():
     return [(fo, "User.1", res), (bo, "User.2", res), (fb, "User.3", res)]
 
 
+# Board is 0.8 mm (measured), blue mask, white silk, HASL finish
+STACKUP = """\t\t(stackup
+\t\t\t(layer "F.SilkS" (type "Top Silk Screen") (color "White"))
+\t\t\t(layer "F.Paste" (type "Top Solder Paste"))
+\t\t\t(layer "F.Mask" (type "Top Solder Mask") (color "Blue") (thickness 0.01))
+\t\t\t(layer "F.Cu" (type "copper") (thickness 0.035))
+\t\t\t(layer "dielectric 1" (type "core") (thickness 0.71) (material "FR4") (epsilon_r 4.5) (loss_tangent 0.02))
+\t\t\t(layer "B.Cu" (type "copper") (thickness 0.035))
+\t\t\t(layer "B.Mask" (type "Bottom Solder Mask") (color "Blue") (thickness 0.01))
+\t\t\t(layer "B.Paste" (type "Bottom Solder Paste"))
+\t\t\t(layer "B.SilkS" (type "Bottom Silk Screen") (color "White"))
+\t\t\t(copper_finish "HAL lead-free")
+\t\t\t(dielectric_constraints no)
+\t\t)
+"""
+
+
 def add_images(pcb_path, imgs):
     blocks = []
     for path, layer, res in imgs:
@@ -578,6 +706,8 @@ def add_images(pcb_path, imgs):
         blocks.append('\t(image (at %.3f %.3f) (layer "%s") (scale %.6f) (locked yes) (uuid "%s")\n\t\t(data\n%s\n\t\t)\n\t)'
                       % (OX + BW / 2, OY + BH / 2, layer, scale, uid(), lines))
     txt = open(pcb_path).read().rstrip()
+    txt = txt.replace("(thickness 1.6)", "(thickness 0.8)", 1)
+    txt = txt.replace("\t(setup\n", "\t(setup\n" + STACKUP, 1)
     assert txt.endswith(")")
     txt = txt[:-1] + "\n".join(blocks) + "\n)\n"
     open(pcb_path, "w").write(txt)
