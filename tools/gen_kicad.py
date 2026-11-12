@@ -122,11 +122,12 @@ NETS = {
 
 # Pads with no drawn trace: the trace drawings cover everything except the GND pour, so
 # untraced pads are taken as GND (U1 16/32 = VSS and 31 = BOOT0 by datasheet; the other
-# untraced U1 pins are unused GPIOs and stay unconnected).
+# untraced U1 pins are unused GPIOs and stay unconnected). U2: only pin 2 is GND (checked
+# on the board); pins 1, 4, 8 and the exposed pad are not connected.
 NETS["GND"] += [("C1", "1"), ("C3", "1"), ("C7", "2"), ("C8", "2"), ("C9", "2"), ("C10", "2"),
                 ("R2", "1"), ("R4", "1"), ("S1", "2"), ("S2", "2"), ("J1", "4"),
                 ("J2", "2"), ("J2", "3"), ("J2", "MP"), ("U1", "16"), ("U1", "31"), ("U1", "32"),
-                ("U2", "1"), ("U2", "4"), ("U2", "8"), ("U2", "9"), ("U3", "4"),
+                ("U3", "4"),
                 ("U4", "2"), ("U4", "3"), ("U4", "7"), ("U4", "9")]
 
 # Placeholder nets that turned out to be the same as a named net (from the XCF trace overlay).

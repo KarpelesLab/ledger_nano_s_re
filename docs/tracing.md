@@ -94,7 +94,8 @@ control GPIOs.
 
 | Pin | Net | Other end | Conf. |
 |-----|-----|-----------|-------|
-| 2 | GND | pour | M |
+| 2 | GND | pour (the only GND pin) | H |
+| 1, 4, 8, EP | NC | no connection | H |
 | 3 | SE_IO | via (21.17,10.60) → back, along the bottom edge → via (5.70,5.18) → **U1.19 (PA9)** | H |
 | 5 | SE_P5 | via (12.93,8.55) → back → via (5.74,4.16) → **U1.18 (PA8)** | H |
 | 6 | SE_P6 | via (13.18,9.42) → back → via (5.97,6.03) → **U1.20 (PA10)** | H |
@@ -129,7 +130,6 @@ with no drawn trace is taken to be on GND:
 - the free ends of C1, C3, C7, C8, C9, C10, R2 and R4
 - pad 2 of S1 and S2
 - J2 pins 2 and 3 (OLED VSS) and its mounting tabs
-- U2 pins 1, 4 and 8, and U2's exposed pad
 - U4 pins 2, 3 and 7, and U4's exposed pad
 - U3 pin 4, J1 pin 4 (USB ID), and via (5.60,11.28)
 - U1 pins 16 and 32 (VSS) and pin 31 (BOOT0, tied low)
@@ -137,6 +137,9 @@ with no drawn trace is taken to be on GND:
 The other untraced U1 pins (2, 3, 9, 10, 12, 14, 15, 26–29) are unused GPIOs
 and are left unconnected.
 
-**Worth a meter check:** U2 pins 1, 4 and 8, U3 pin 4 and J1 pin 4. On many
+U2 is the exception. Only pin 2 is GND (confirmed by the owner). Pins 1, 4
+and 8 and the exposed pad are **not connected**.
+
+**Worth a meter check:** U3 pin 4 and J1 pin 4. On many
 parts these are NC (no connection) pins rather than GND. Here they would sit
 in the pour with no visible gap.

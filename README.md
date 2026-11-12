@@ -91,14 +91,14 @@ so going counter-clockwise from the top view:
 
 | Pin | Observation | Likely function |
 |-----|-------------|-----------------|
-| 1 | ? | ? |
+| 1 | Not connected | NC |
 | 2 | Connected to the ground pour | **GND** |
 | 3 | STM32 **PA9** (USART1_TX), via the back | **I/O** |
-| 4 | ? | ? |
+| 4 | Not connected | NC |
 | 5 | STM32 **PA8** (USART1_CK / MCO) | CLK |
 | 6 | STM32 **PA10** | RST (GPIO)? |
 | 7 | +3V0 rail (U3 out, U1.1), decoupled by C2 | **VCC** |
-| 8 | ? | ? |
+| 8 | Not connected | NC |
 
 Crop: [u2_context.jpg](docs/img/u2_context.jpg)
 
