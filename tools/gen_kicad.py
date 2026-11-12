@@ -85,17 +85,49 @@ for i, xy in enumerate([(2735, 350), (2500, 520), (1830, 775), (2740, 775), (318
                         (2285, 995), (2500, 995), (2735, 995), (3025, 995)]):
     part("TP%d" % (i + 6), "TestPoint:TestPoint_Pad_D1.0mm", "TP", Hb(*xy), 0, "B", sym="Connector:TestPoint")
 
-# Nets: only what is confirmed or strongly supported (see docs/kicad.md)
+# Nets traced from the photos (see docs/tracing.md for evidence and confidence).
 NETS = {
-    "GND": [("J1", "5"), ("J1", "SH"), ("U1", "33"), ("U2", "2"), ("C2", "2")],
-    "VBUS": [("J1", "1")],
+    "GND": [("J1", "5"), ("J1", "SH"), ("U1", "33"), ("U2", "2"), ("C2", "2"), ("C5", "1"), ("TP1", "1")],
+    "VBUS": [("J1", "1"), ("C5", "2"), ("TP3", "1")],
+    "+3V0": [("U1", "1"), ("U1", "5"), ("U1", "17")],
     "USB_DM": [("J1", "2"), ("U1", "21")],
     "USB_DP": [("J1", "3"), ("U1", "22")],
+    "SWDIO": [("U1", "23"), ("TP4", "1")],
+    "SWCLK": [("U1", "24"), ("TP2", "1")],
+    "NRST": [("U1", "4"), ("TP5", "1")],
     "SE_VCC": [("U2", "7"), ("C2", "1")],
     "SE_P3": [("U2", "3")],
     "SE_P5": [("U2", "5")],
-    "SE_P6": [("U2", "6")],
+    "SE_P6": [("U2", "6"), ("U1", "20")],
+    "PA9": [("U1", "19")],
+    "PA2": [("U1", "8")],
+    "U3_P5": [("U3", "5")],
 }
+
+# Vias found on both sides (board mm, front view) and the net they were traced to.
+# None = net not determined. False positives from silkscreen were removed.
+VIAS = [
+    (3.80, 2.42, "GND"), (5.47, 7.49, "SWDIO"), (5.74, 4.16, "SE_P5"), (5.70, 5.18, "PA9"),
+    (5.97, 6.03, "SE_P6"), (5.84, 8.73, "SWCLK"), (5.60, 11.28, None), (6.91, 3.65, "+3V0"),
+    (8.19, 5.26, "GND"), (8.18, 6.35, "GND"), (8.17, 7.44, "GND"), (8.54, 2.72, "VBUS"),
+    (9.27, 5.17, "GND"), (9.24, 6.26, "GND"), (9.28, 7.43, "GND"), (8.98, 9.86, None),
+    (10.35, 5.26, "GND"), (10.36, 6.36, "GND"), (10.37, 7.43, "GND"), (11.42, 2.66, "VBUS"),
+    (11.63, 8.84, "+3V0"), (13.04, 4.69, "PA2"), (12.64, 6.70, "NRST"), (12.93, 8.55, "SE_P5"),
+    (13.18, 9.42, "SE_P6"), (13.77, 6.03, "+3V0"), (16.93, 3.59, "GND"), (16.60, 5.57, "N_TP8"),
+    (16.87, 7.30, "GND"), (17.54, 6.18, "PA2"), (19.14, 2.33, "U3_P5"), (18.78, 3.56, "+3V0"),
+    (18.75, 5.59, "+3V0"), (19.94, 3.16, "GND"), (19.69, 11.51, "GND"), (21.17, 10.60, None),
+    (21.64, 5.11, "N_TP10"), (21.74, 6.62, "N_TP11"), (23.39, 5.29, "N_TP7"), (23.20, 7.42, "N_TP12"),
+    (24.28, 4.55, "N_TP9"), (25.24, 3.72, "N_TP6"), (25.92, 11.53, "GND"), (26.57, 3.92, "GND"),
+    (27.31, 7.11, "N_TP14"), (26.52, 8.82, "N_TP13"), (27.82, 4.32, "N_V51"), (29.29, 5.37, "N_TP10"),
+    (29.65, 1.92, "N_V51"), (29.55, 3.00, "+3V0"), (29.76, 10.22, None), (31.07, 5.14, "GND"),
+    (31.32, 8.87, "GND"), (31.56, 6.93, "U3_P5"),
+    (32.36, 1.53, "GND"), (32.37, 2.64, "GND"), (32.36, 3.74, "GND"),
+    (33.46, 1.55, "GND"), (33.47, 2.64, "GND"), (33.49, 3.70, "GND"),
+]
+# Back-side test pads whose net is a dedicated trace (pad position -> net)
+TP_NETS = {(24.78, 1.94): "N_TP6", (22.34, 3.72): "N_TP7", (15.39, 6.40): "N_TP8", (24.83, 6.40): "N_TP9",
+           (29.44, 6.34): "N_TP10", (20.11, 8.70): "N_TP11", (22.34, 8.70): "N_TP12", (24.78, 8.70): "N_TP13",
+           (27.78, 8.70): "N_TP14"}
 
 # --------------------------------------------------------------------------
 # Custom footprints
@@ -474,6 +506,14 @@ def build_pcb(sym_uuids):
             if n:
                 pd.SetNet(nets[n])
 
+    for x, y, n in VIAS:
+        v = pcbnew.PCB_VIA(board)
+        v.SetPosition(V(OX + x, OY + y)); v.SetWidth(mm(0.6)); v.SetDrill(mm(0.3))
+        v.SetLayerPair(pcbnew.F_Cu, pcbnew.B_Cu)
+        if n:
+            v.SetNet(nets[n])
+        board.Add(v)
+
     path = os.path.join(OUT, PRJ + ".kicad_pcb")
     board.Save(path)
     return path
@@ -521,8 +561,19 @@ def add_images(pcb_path, imgs):
     open(pcb_path, "w").write(txt)
 
 
+def assign_tp_nets():
+    for p in P:
+        if p["ref"].startswith("TP") and int(p["ref"][2:]) > 5:
+            best = min(TP_NETS, key=lambda k: math.hypot(k[0] - p["pos"][0], k[1] - p["pos"][1]))
+            if math.hypot(best[0] - p["pos"][0], best[1] - p["pos"][1]) < 0.5:
+                NETS.setdefault(TP_NETS[best], []).append((p["ref"], "1"))
+    for n in set(TP_NETS.values()) | {v[2] for v in VIAS if v[2]}:
+        NETS.setdefault(n, [])
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
+    assign_tp_nets()
     build_footprints()
     build_symbols()
     with open(os.path.join(OUT, "fp-lib-table"), "w") as f:

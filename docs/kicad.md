@@ -11,8 +11,8 @@ The project is in [`kicad/`](../kicad/) (KiCad 10). Open
 | Footprints | All 31 parts (U1–U4, J1, J2, L1, S1, S2, 9 caps, 4 resistors, 14 back-side test pads) are placed at their measured positions. Accuracy is about ±0.2 mm. |
 | Photo underlays | The stitched front photo is on layer **User.1**, the mirrored back photo on **User.2**, and the front with components removed on **User.3** (best for tracing top copper). All three are scaled and aligned to the board outline and locked. Toggle them in the Layers panel to trace copper. |
 | Schematic | All symbols, linked to their footprints (F8 / "Update PCB from schematic" works). Nets are attached with labels. |
-| Nets | **Partial on purpose.** Only connections that are confirmed or strongly supported are entered (table below). |
-| Tracks / vias | **Not routed yet.** That is the next step, tracing over the photo layers. |
+| Nets | Traced from the photos (see [tracing.md](tracing.md)). The J2, U4 and button nets are still open. |
+| Tracks / vias | 60 vias are placed with nets. No tracks yet. |
 
 Overlay check (the red boxes are the KiCad pad positions drawn on the
 photos):
@@ -23,13 +23,15 @@ photos):
 
 ## Nets entered so far
 
-| Net | Members | Basis |
-|-----|---------|-------|
-| USB_DM / USB_DP | J1.2 / J1.3 → U1 PA11 (21) / PA12 (22) | The STM32F042's USB is fixed to PA11/PA12 |
-| VBUS | J1.1 | — |
-| GND | J1.5, J1 shell, U1 EP (VSS, pin 33), U2.2, C2.2 | U2.2 seen by user. U1 EP is VSS on the K6Ux package. |
-| SE_VCC | U2.7, C2.1 | User saw VCC with a decoupling cap on pin 7 |
-| SE_P3, SE_P5, SE_P6 | U2.3 / U2.5 / U2.6 | Pins 5 and 6 go to the STM32 (pins on the STM32 side still unknown) |
+The nets come from photo tracing. See [tracing.md](tracing.md) for the
+evidence and the confidence of each one. Summary:
+
+- **SWD header (back):** TP1 GND, TP2 SWCLK, TP3 VBUS, TP4 SWDIO, TP5 NRST
+- **USB:** J1 D−/D+ → U1 PA11/PA12, VBUS → C5 / TP3
+- **+3V0:** U1 VDD/VDDA/VDDIO2, plus a long back trace to the U3/J2 and U4 areas
+- **SE link:** U2.5 → U1 (pin not resolved yet), U2.6 → U1.20 (PA10)
+- 60 vias are placed at their measured positions, most of them with nets.
+  Tracks are still unrouted (only the ratsnest is shown).
 
 ## Footprint choices / assumptions
 

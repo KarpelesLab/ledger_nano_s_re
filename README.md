@@ -112,7 +112,7 @@ which it is.
 
 ## Back side / test access
 
-- **5-pad row** with silkscreen rings near the top edge (USB half), with a dot
+- **5-pad row** (traced, see [docs/tracing.md](docs/tracing.md): TP1 GND, TP2 SWCLK, TP3 VBUS, TP4 SWDIO, TP5 NRST) with silkscreen rings near the top edge (USB half), with a dot
   marking one end. These are round pads with solder bumps, not plated
   through-holes. They are almost certainly a **factory programming/test
   header**. Best guess: the STM32 SWD port (SWDIO, SWCLK, NRST, VDD, GND).
