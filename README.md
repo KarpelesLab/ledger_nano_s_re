@@ -43,14 +43,14 @@ connector is on the right.
 | **U1** | `F042K6` / `GQ22Z 1193` / `CHN 749 A`, ST logo, e3 | UFQFPN32 (5×5 mm) with exposed pad | **STM32F042K6** Cortex-M0, 32 KB Flash, 6 KB RAM, crystal-less USB FS. This is the main (non-secure) MCU. It handles USB, the display and the buttons. Date code 2017 wk 49. **[confirmed]** |
 | **U2** | `NBO` / `PHL744` / `7B`, ST logo | 8-pad DFN (~5×6 mm) | ST part. Probably the **secure element** (ST31H320 family). ST prints internal codes rather than the part number, so this is not certain. Date 2017 wk 44. **[likely]** |
 | **U3** | `AD30` | SOT-23-5 (3+2 leads), pin 1 dot next to "C12" | Most likely a **3.0 V LDO** (the "30" suffix is the usual voltage code). Needs a check of the in/out pins. **[likely]** |
-| **U4** | `8R00W` / `MYS749`, ST logo, e4 | 8-pad DFN (~3×3 mm) with exposed pad (2×3 thermal vias on the back) | **ST8R00**, a synchronous PWM step-up (boost) DC-DC converter. `8R00` is the part code and `W` is probably a variant/suffix letter. It sits right next to inductor L1 and bulk caps C7–C9. Which rail it makes (OLED VCC or a system rail) is still to be confirmed. Date 2017 wk 49. **[likely — from the marking]** |
-| **L1** | `100` | ~3×3 mm shielded power inductor | 10 µH. It is the power inductor for U4. **[likely]** |
+| **U4** | `8R00W` / `MYS749`, ST logo, e4 | DFN8 4×4 mm with exposed pad (2×3 thermal vias on the back) | **ST8R00**, a synchronous PWM step-up DC-DC converter. Input 4–6 V, so it must run from USB VBUS rather than the 3.0 V rail. Output is set to 6–12 V by a resistor divider. Switches at 1.7 MHz, up to 1 A. Its external parts are L1, C7–C9 and the R2/R4 divider. The 6–12 V output fits an SSD1306-class OLED panel VCC (7–15 V), so it **almost certainly powers the display**. Date 2017 wk 49. **[likely — marking + datasheet]** |
+| **L1** | `100` | ~3×3 mm shielded power inductor | 10 µH. It is the inductor for the ST8R00 boost converter. **[likely]** |
 | **J1** | — | Micro-USB B receptacle, SMD with through-hole shield tabs | USB power and data. **[confirmed]** |
 | **J2** | pin 1 / pin 12 marked | 12-pin FPC/FFC connector, bottom-contact flip-lock | **OLED display** flex. The Nano S panel is a 128×32 monochrome OLED, usually driven by an SSD1306-class controller. **[likely]** |
 | **S1, S2** | — | Side-actuated SMD tactile switches (kapton covered) | The two user buttons. **[confirmed]** |
 | C2, C3, C5, C7, C8, C9, C10, C12 | — | 0402 / 0603 / 0805 MLCC | Decoupling and bulk caps. C7–C9 (0805) sit at the regulator. |
 | C1 | — | — | Silkscreen sits next to J2, but no part is visible. It is either hidden under the connector or left unpopulated. |
-| R1, R2, R3, R4 | — | 0402 | R2/R4 are a pair next to U4. They are probably the ST8R00 feedback divider, which sets its output voltage. |
+| R1, R2, R3, R4 | — | 0402 | R2/R4 are a pair next to U4. They are probably the ST8R00 feedback divider, which sets the output voltage (6–12 V). |
 
 Crops: [U1](docs/img/u1_stm32f042k6.jpg) · [U2](docs/img/u2_marking.jpg) ·
 [U3](docs/img/u3_ad30.jpg) · [U4](docs/img/u4_marking.jpg) ·
@@ -77,7 +77,8 @@ Crops: [U1](docs/img/u1_stm32f042k6.jpg) · [U2](docs/img/u2_marking.jpg) ·
                  │   │
                  │   └── S1 / S2 buttons
                  └────── J2 ──► 128×32 OLED (SSD1306-class)
- Power: VBUS ─► U3 LDO (3.0 V)  ;  U4 ST8R00 + L1 boost ─► ? (OLED VCC?)
+ Power: VBUS (5 V) ─► U3 LDO ─► 3.0 V logic (MCU, SE, OLED VDD)
+        VBUS (5 V) ─► U4 ST8R00 + L1 boost ─► 6–12 V ─► OLED panel VCC (J2)
 ```
 
 In the Nano S design the MCU acts as a proxy. It owns USB, the screen and the
@@ -89,9 +90,9 @@ through the MCU (the "SEPROXYHAL" protocol).
 - [ ] Probe the 5-pad header: continuity to U1 pins PA13 (SWDIO), PA14
       (SWCLK) and NRST. Try `st-link`/OpenOCD (it will probably be RDP-locked).
 - [ ] Find U1 ↔ U2 traces and figure out the MCU–SE link (pins, protocol).
-- [ ] Get the ST8R00 datasheet, check its output range, and work out the set
-      voltage from the R2/R4 divider. Measure the boost output and see if it
-      reaches J2 (OLED VCC).
+- [ ] Read R2/R4 values (or measure the boost output) and confirm the
+      OLED VCC voltage. Check that it reaches J2. Check whether the MCU
+      drives the ST8R00 EN pin, which would switch the display power.
 - [ ] Map the J2 pinout against the SSD1306 FPC pinouts we know.
 - [ ] Measure the U3 output (expected 3.0 V).
 - [ ] Get higher-resolution, non-mirrored back photos for full trace mapping.
