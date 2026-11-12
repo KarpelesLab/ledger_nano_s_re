@@ -97,8 +97,8 @@ control GPIOs.
 | 2 | GND | pour (the only GND pin) | H |
 | 1, 4, 8, EP | NC | no connection | H |
 | 3 | SE_IO | via (21.17,10.60) → back, along the bottom edge → via (5.70,5.18) → **U1.19 (PA9)** | H |
-| 5 | SE_P5 | via (12.93,8.55) → back → via (5.74,4.16) → **U1.18 (PA8)** | H |
-| 6 | SE_P6 | via (13.18,9.42) → back → via (5.97,6.03) → **U1.20 (PA10)** | H |
+| 5 | SE_CLK | via (12.93,8.55) → back → via (5.74,4.16) → **U1.18 (PA8)** | H |
+| 6 | SE_RST | via (13.18,9.42) → back → via (5.97,6.03) → **U1.20 (PA10)** | H |
 | 7 | +3V0 | U1.1, C2.2 decoupling | H |
 
 On the STM32F042, PA8 is USART1_CK (or MCO), PA9 is USART1_TX and PA10 is

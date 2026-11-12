@@ -92,10 +92,10 @@ so going counter-clockwise from the top view:
 |-----|-------------|-----------------|
 | 1 | Not connected | NC |
 | 2 | Connected to the ground pour | **GND** |
-| 3 | STM32 **PA9** (USART1_TX), via the back | **I/O** |
+| 3 | STM32 **PA9** (USART1_TX), via the back | **I/O** (confirmed by ATR test) |
 | 4 | Not connected | NC |
-| 5 | STM32 **PA8** (USART1_CK / MCO) | CLK |
-| 6 | STM32 **PA10** (GPIO) | **RST** (MFF2-like position) |
+| 5 | STM32 **PA8** (USART1_CK / MCO) | **CLK** (confirmed by ATR test) |
+| 6 | STM32 **PA10** (GPIO) | **RST** (confirmed by ATR test) |
 | 7 | +3V0 rail (U3 out, U1.1), decoupled by C2 | **VCC** |
 | 8 | Not connected | NC |
 
@@ -124,6 +124,26 @@ Pins 3, 5 and 6 go to PA9 (USART1_TX), PA8 (USART1_CK) and PA10 (GPIO). That
 is the STM32 USART1 **smartcard-mode** wiring: TX as the half-duplex I/O line,
 CK as the card clock, and a GPIO as RST. So the MCU ↔ SE link is ISO 7816-3
 over USART1. See [docs/tracing.md](docs/tracing.md).
+
+### ATR test (chip removed from the board)
+
+The removed U2 was wired to a Baochip-1x (dabao): 3.3 V to pin 7, GND to pin
+2, PB1 to pin 6 (RST), PB2 to pin 5 (CLK) and PB3 to pin 3 (I/O, 10 kΩ
+pull-up to 3.3 V). Bit-banged ISO 7816-3 cold reset at a CLK of about 1.95 MHz,
+using the `sc atr` command of the `iso7816-probe` branch of xous-core
+(`baremetal/src/iso7816.rs`):
+
+```
+ATR: 3B 90 98 10 00      first start bit 823 clocks after RST, 0 parity errors
+TS=3B direct convention
+T0=90 TA1, TD1 present, no historical bytes
+TA1=98 Fi=512, Di=12  ->  1 etu = 42.67 clocks
+TD1=10 T=0, TA2 present
+TA2=00 specific mode: T=0 at Fi/Di from TA1 (no PPS)
+```
+
+This confirms the pinout (3 = I/O, 5 = CLK, 6 = RST). The MCU ↔ SE link is
+ISO 7816 **T=0** at F/D = 512/12, which is about 45.6 kbaud at a 1.95 MHz clock.
 
 ## Back side / test access
 
@@ -163,8 +183,10 @@ through the MCU (the "SEPROXYHAL" protocol).
 - [ ] U2: confirm GND (2) and VCC (7) with a meter. Trace pin 3. Check if
       pins 1, 4 and 8 are connected. Map pins 5 and 6 to their STM32 pins
       (USART TX/CK in smartcard mode? GPIO?).
-- [ ] Sniff the MCU↔SE link (logic analyzer on I/O + CLK) and look for the
-      ISO 7816 ATR after reset.
+- [x] SE answers a standard ISO 7816 cold reset: ATR `3B 90 98 10 00`
+      (T=0, F/D 512/12, specific mode).
+- [ ] Talk T=0 to the SE (APDUs at etu = 42.67 clocks), and sniff the MCU↔SE
+      traffic on a working Nano S to learn the command set.
 - [ ] Read R2/R4 values (or measure the boost output) and confirm the
       OLED VCC voltage. Check that it reaches J2. Check whether the MCU
       drives the ST8R00 EN pin, which would switch the display power.
