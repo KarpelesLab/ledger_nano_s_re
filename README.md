@@ -36,6 +36,13 @@ connector is on the right.
 - The PCB edges are rough and fibrous all around. This could be from
   depanelization or from removing the board from its case.
 
+## KiCad reconstruction
+
+There is a KiCad 10 project in [`kicad/`](kicad/). It has the board outline,
+every part placed from the photos, the photos as aligned underlay layers, and
+a schematic with the nets known so far. Details and assumptions are in
+[docs/kicad.md](docs/kicad.md).
+
 ## Bill of materials (as seen)
 
 | Ref | Marking | Package | Identification |
@@ -49,7 +56,7 @@ connector is on the right.
 | **J2** | pin 1 / pin 12 marked | 12-pin FPC/FFC connector, bottom-contact flip-lock | **OLED display** flex. The Nano S panel is a 128×32 monochrome OLED, usually driven by an SSD1306-class controller. **[likely]** |
 | **S1, S2** | — | Side-actuated SMD tactile switches (kapton covered) | The two user buttons. **[confirmed]** |
 | C2, C3, C5, C7, C8, C9, C10, C12 | — | 0402 / 0603 / 0805 MLCC | Decoupling and bulk caps. C7–C9 (0805) sit at the regulator. |
-| C1 | — | — | Silkscreen sits next to J2, but no part is visible. It is either hidden under the connector or left unpopulated. |
+| C1 | — | 0603 | The cap just left of the "C7" label, next to the "C1" silkscreen (found while placing parts in KiCad). |
 | R1, R2, R3, R4 | — | 0402 | R2/R4 are a pair next to U4. They are probably the ST8R00 feedback divider, which sets the output voltage (6–12 V). |
 
 Crops: [U1](docs/img/u1_stm32f042k6.jpg) · [U2](docs/img/u2_marking.jpg) ·

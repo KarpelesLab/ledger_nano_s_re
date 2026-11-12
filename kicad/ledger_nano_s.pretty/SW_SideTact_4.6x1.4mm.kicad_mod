@@ -1,0 +1,203 @@
+(footprint "SW_SideTact_4.6x1.4mm"
+	(version 20260206)
+	(generator "pcbnew")
+	(generator_version "10.0")
+	(layer "F.Cu")
+	(descr "Side-actuated SMD tact switch (S1/S2). Pads measured from photos (approx.): pads at x=+-2.3, y=+-0.7. Bottom pads show solder through to the back, modelled as PTH. Actuator protrudes past the board edge (+y).")
+	(property "Reference" "REF**"
+		(at 0 0 0)
+		(layer "F.SilkS")
+		(uuid "724ccc88-457b-48bd-a34a-824332c4442a")
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+	)
+	(property "Value" "SW_SideTact_4.6x1.4mm"
+		(at 0 0 0)
+		(layer "F.Fab")
+		(uuid "97e5643f-e82f-4752-8c51-2174b6e5063f")
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+	)
+	(property "Datasheet" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "aa1851a9-046c-4f37-9721-1b8244880f94")
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+	)
+	(property "Description" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "2192058a-4b9c-4e37-8561-b0178a1ef8e8")
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+	)
+	(duplicate_pad_numbers_are_jumpers no)
+	(fp_line
+		(start -3 -1.4)
+		(end 3 -1.4)
+		(stroke
+			(width 0.05)
+			(type default)
+		)
+		(layer "F.CrtYd")
+		(uuid "2dac3929-d397-4e26-94ef-560bb850fdfe")
+	)
+	(fp_line
+		(start -3 2.2)
+		(end -3 -1.4)
+		(stroke
+			(width 0.05)
+			(type default)
+		)
+		(layer "F.CrtYd")
+		(uuid "e2578e09-09a5-4751-ac0a-8af870ff2f54")
+	)
+	(fp_line
+		(start 3 -1.4)
+		(end 3 2.2)
+		(stroke
+			(width 0.05)
+			(type default)
+		)
+		(layer "F.CrtYd")
+		(uuid "2dcd4bb2-dbf3-4f81-a5d2-428d02b7111a")
+	)
+	(fp_line
+		(start 3 2.2)
+		(end -3 2.2)
+		(stroke
+			(width 0.05)
+			(type default)
+		)
+		(layer "F.CrtYd")
+		(uuid "64a77c95-daa2-436b-8c47-73734dbc4a41")
+	)
+	(fp_line
+		(start -1.8 -1.2)
+		(end 1.8 -1.2)
+		(stroke
+			(width 0.1)
+			(type default)
+		)
+		(layer "F.Fab")
+		(uuid "38ea37c5-fa9a-4a86-84db-3caf40fb31b2")
+	)
+	(fp_line
+		(start -1.8 1.2)
+		(end -1.8 -1.2)
+		(stroke
+			(width 0.1)
+			(type default)
+		)
+		(layer "F.Fab")
+		(uuid "c6896103-edc6-4d3b-98eb-03393cfc0438")
+	)
+	(fp_line
+		(start -0.8 1.2)
+		(end 0.8 1.2)
+		(stroke
+			(width 0.1)
+			(type default)
+		)
+		(layer "F.Fab")
+		(uuid "b4ce0e2a-4e72-4f3e-b4e4-e8b8a558fa92")
+	)
+	(fp_line
+		(start -0.8 2)
+		(end -0.8 1.2)
+		(stroke
+			(width 0.1)
+			(type default)
+		)
+		(layer "F.Fab")
+		(uuid "569f9cb3-daf9-4c7b-81da-1017e6777759")
+	)
+	(fp_line
+		(start 0.8 1.2)
+		(end 0.8 2)
+		(stroke
+			(width 0.1)
+			(type default)
+		)
+		(layer "F.Fab")
+		(uuid "02cc8d6d-1e72-41c2-a6b9-0c8f44e3924e")
+	)
+	(fp_line
+		(start 0.8 2)
+		(end -0.8 2)
+		(stroke
+			(width 0.1)
+			(type default)
+		)
+		(layer "F.Fab")
+		(uuid "685976a1-b492-4aab-9952-36dd6e842e05")
+	)
+	(fp_line
+		(start 1.8 -1.2)
+		(end 1.8 1.2)
+		(stroke
+			(width 0.1)
+			(type default)
+		)
+		(layer "F.Fab")
+		(uuid "ba76d1bf-bdcb-4918-8cee-6e7e1cf3568f")
+	)
+	(fp_line
+		(start 1.8 1.2)
+		(end -1.8 1.2)
+		(stroke
+			(width 0.1)
+			(type default)
+		)
+		(layer "F.Fab")
+		(uuid "2d54feb8-5da5-41c5-a2a1-8565b177e255")
+	)
+	(pad "1" smd roundrect
+		(at -2.3 -0.7)
+		(size 1 0.9)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(roundrect_rratio 0.25)
+		(thermal_bridge_angle 45)
+		(uuid "6463c0df-a8d1-4195-8833-8415c8a6276d")
+	)
+	(pad "1" smd roundrect
+		(at 2.3 -0.7)
+		(size 1 0.9)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(roundrect_rratio 0.25)
+		(thermal_bridge_angle 45)
+		(uuid "67dc33ef-2b30-4e67-9930-7e65239b1d3f")
+	)
+	(pad "2" thru_hole circle
+		(at -2.3 0.7)
+		(size 1 1)
+		(drill 0.6)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "96ae201d-24c8-42fd-b3d5-6303b9f874e4")
+	)
+	(pad "2" thru_hole circle
+		(at 2.3 0.7)
+		(size 1 1)
+		(drill 0.6)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(uuid "34ac33ba-437f-4201-98dd-9373db9ac81a")
+	)
+	(embedded_fonts no)
+)

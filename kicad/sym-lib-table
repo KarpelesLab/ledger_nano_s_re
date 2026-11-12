@@ -1,0 +1,4 @@
+(sym_lib_table
+	(version 7)
+	(lib (name "ledger_nano_s") (type "KiCad") (uri "${KIPRJMOD}/ledger_nano_s.kicad_sym") (options "") (descr "Ledger Nano S custom symbols"))
+)

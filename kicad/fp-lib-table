@@ -1,0 +1,4 @@
+(fp_lib_table
+	(version 7)
+	(lib (name "ledger_nano_s") (type "KiCad") (uri "${KIPRJMOD}/ledger_nano_s.pretty") (options "") (descr "Ledger Nano S custom footprints"))
+)
