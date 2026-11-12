@@ -120,6 +120,15 @@ NETS = {
     "PB7": [("U1", "30"), ("S1", "1")],  # back trace, XCF
 }
 
+# Pads with no drawn trace: the trace drawings cover everything except the GND pour, so
+# untraced pads are taken as GND (U1 16/32 = VSS and 31 = BOOT0 by datasheet; the other
+# untraced U1 pins are unused GPIOs and stay unconnected).
+NETS["GND"] += [("C1", "1"), ("C3", "1"), ("C7", "2"), ("C8", "2"), ("C9", "2"), ("C10", "2"),
+                ("R2", "1"), ("R4", "1"), ("S1", "2"), ("S2", "2"), ("J1", "4"),
+                ("J2", "2"), ("J2", "3"), ("J2", "MP"), ("U1", "16"), ("U1", "31"), ("U1", "32"),
+                ("U2", "1"), ("U2", "4"), ("U2", "8"), ("U2", "9"), ("U3", "4"),
+                ("U4", "2"), ("U4", "3"), ("U4", "7"), ("U4", "9")]
+
 # Placeholder nets that turned out to be the same as a named net (from the XCF trace overlay).
 MERGE = {"N_TP6": "J2_P10", "N_TP7": "PA2", "N_TP8": "PA1", "N_TP9": "PA5", "N_TP10": "J2_P1",
          "N_TP11": "PA0", "N_TP12": "PA7", "N_TP13": "J2_P12", "N_TP14": "J2_P11", "N_V51": "U4_P5", "PA9": "SE_IO", "SE_P3": "SE_IO", "S1_P1": "PB7",
@@ -129,7 +138,7 @@ MERGE = {"N_TP6": "J2_P10", "N_TP7": "PA2", "N_TP8": "PA1", "N_TP9": "PA5", "N_T
 # None = net not determined. False positives from silkscreen were removed.
 VIAS = [
     (3.80, 2.42, "+3V0"), (5.47, 7.49, "SWDIO"), (5.74, 4.16, "SE_P5"), (5.70, 5.18, "PA9"),
-    (5.97, 6.03, "SE_P6"), (5.84, 8.73, "SWCLK"), (5.60, 11.28, None), (6.91, 3.65, "+3V0"),
+    (5.97, 6.03, "SE_P6"), (5.84, 8.73, "SWCLK"), (5.60, 11.28, "GND"), (6.91, 3.65, "+3V0"),
     (8.19, 5.26, "GND"), (8.18, 6.35, "GND"), (8.17, 7.44, "GND"), (8.54, 2.72, "VBUS"),
     (9.27, 5.17, "GND"), (9.24, 6.26, "GND"), (9.28, 7.43, "GND"), (8.98, 9.86, "PB7"),
     (10.35, 5.26, "GND"), (10.36, 6.36, "GND"), (10.37, 7.43, "GND"), (11.42, 2.66, "VBUS"),
@@ -670,9 +679,9 @@ def build_pcb(sym_uuids):
         ol = z.Outline(); ol.NewOutline()
         for x, y in ((0, 0), (BW, 0), (BW, BH), (0, BH)):
             ol.Append(V(OX + x, OY + y))
-        z.SetLocalClearance(mm(0.2)); z.SetMinThickness(mm(0.15))
+        z.SetLocalClearance(mm(0.15)); z.SetMinThickness(mm(0.1))
         z.SetThermalReliefGap(mm(0.2)); z.SetThermalReliefSpokeWidth(mm(0.25))
-        z.SetPadConnection(pcbnew.ZONE_CONNECTION_THERMAL)
+        z.SetPadConnection(pcbnew.ZONE_CONNECTION_FULL)
         board.Add(z)
 
     path = os.path.join(OUT, PRJ + ".kicad_pcb")

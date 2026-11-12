@@ -12,7 +12,7 @@ The project is in [`kicad/`](../kicad/) (KiCad 10). Open
 | Photo underlays | The stitched front photo is on layer **User.1**, the mirrored back photo on **User.2**, and the front with components removed on **User.3** (best for tracing top copper). All three are scaled and aligned to the board outline and locked. Toggle them in the Layers panel to trace copper. |
 | Schematic | All symbols, linked to their footprints (F8 / "Update PCB from schematic" works). Nets are attached with labels. |
 | Nets | Traced from the photos and the hand-drawn trace layers in `pics/20261112_183853.xcf` (front) and `pics/back_aligned.xcf` (back) (see [tracing.md](tracing.md)). They cover USB, power, the SWD header, the OLED connector, the boost converter, the SE link and S2. |
-| Tracks / vias | 62 vias. **Tracks** on both layers, converted from the hand-drawn red trace layers (front and back XCF) and stored in `tools/tracks.json` (70 polylines, each snapped to its pads and vias and given its net). Widths: 0.3 mm power, 0.15 mm signal. **GND pour** on both layers. |
+| Tracks / vias | 62 vias. **Tracks** on both layers, converted from the hand-drawn red trace layers (front and back XCF) and stored in `tools/tracks.json` (70 polylines, each snapped to its pads and vias and given its net). Widths: 0.3 mm power, 0.15 mm signal. **GND pour** on both layers (0.15 mm clearance, solid pad connections). Untraced pads are on GND, because the drawings cover everything except the pour. |
 
 Overlay check (the red boxes are the KiCad pad positions drawn on the
 photos):
@@ -100,8 +100,7 @@ only re-run the script to start over.
 
 ## Known caveats
 
-- DRC reports no shorts and 6 unconnected items (small isolated GND pour
-  islands, plus U2.2 and C2.1, whose GND connection isn't traced). The
+- DRC reports no shorts and 1 unconnected item (a GND pour island). The
   remaining clearance warnings come from tracing hand-drawn strokes: the
   tracks follow the drawing, not a design-rule-clean route.
 - Track geometry is approximate (about ±0.1 mm). The connectivity matters

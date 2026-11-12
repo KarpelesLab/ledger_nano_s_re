@@ -121,8 +121,22 @@ suggests the MCU ↔ SE link is ISO 7816-3 framing over USART1.
 
 Pad 2 of each switch is GND.
 
-## Still open
+## Untraced pads → GND
 
-- J2 pins 2 and 3. U2 pins 1, 4, 8 and the EP. R2.1, R4.1 (probably GND) and
-  C7.2/C8.2/C9.2 (probably GND).
-- Via (5.60,11.28) has no net.
+The hand-drawn layers include every trace except the ground pour, so any pad
+with no drawn trace is taken to be on GND:
+
+- the free ends of C1, C3, C7, C8, C9, C10, R2 and R4
+- pad 2 of S1 and S2
+- J2 pins 2 and 3 (OLED VSS) and its mounting tabs
+- U2 pins 1, 4 and 8, and U2's exposed pad
+- U4 pins 2, 3 and 7, and U4's exposed pad
+- U3 pin 4, J1 pin 4 (USB ID), and via (5.60,11.28)
+- U1 pins 16 and 32 (VSS) and pin 31 (BOOT0, tied low)
+
+The other untraced U1 pins (2, 3, 9, 10, 12, 14, 15, 26–29) are unused GPIOs
+and are left unconnected.
+
+**Worth a meter check:** U2 pins 1, 4 and 8, U3 pin 4 and J1 pin 4. On many
+parts these are NC (no connection) pins rather than GND. Here they would sit
+in the pour with no visible gap.
