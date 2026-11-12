@@ -1,23 +1,23 @@
-(footprint "SW_SideTact_4.6x1.4mm"
+(footprint "SW_SideTact_P3.8x1.38mm"
 	(version 20260206)
 	(generator "pcbnew")
 	(generator_version "10.0")
 	(layer "F.Cu")
-	(descr "Side-actuated SMD tact switch (S1/S2). Pads measured from photos (approx.): pads at x=+-2.3, y=+-0.7. Bottom pads show solder through to the back, modelled as PTH. Actuator protrudes past the board edge (+y).")
+	(descr "Side-actuated SMD tact switch (S1/S2). Land pattern measured on the bare board: 4 pads 1.75x1.0mm at x=+-1.9, y=+-0.69; the edge-side pair are plated through-holes. Actuator protrudes past the board edge (+y).")
 	(property "Reference" "REF**"
 		(at 0 0 0)
 		(layer "F.SilkS")
-		(uuid "724ccc88-457b-48bd-a34a-824332c4442a")
+		(uuid "204b9a69-5a94-4cf5-9433-50f042823ad3")
 		(effects
 			(font
 				(size 1.27 1.27)
 			)
 		)
 	)
-	(property "Value" "SW_SideTact_4.6x1.4mm"
+	(property "Value" "SW_SideTact_P3.8x1.38mm"
 		(at 0 0 0)
 		(layer "F.Fab")
-		(uuid "97e5643f-e82f-4752-8c51-2174b6e5063f")
+		(uuid "ea0f4424-4772-4ee8-aeef-118661328278")
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -28,7 +28,7 @@
 		(at 0 0 0)
 		(layer "F.Fab")
 		(hide yes)
-		(uuid "aa1851a9-046c-4f37-9721-1b8244880f94")
+		(uuid "9e9a1c61-885b-4575-b430-1fbafcda3895")
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -39,7 +39,7 @@
 		(at 0 0 0)
 		(layer "F.Fab")
 		(hide yes)
-		(uuid "2192058a-4b9c-4e37-8561-b0178a1ef8e8")
+		(uuid "f1b46d9c-036c-49a6-a9b9-3973969f6a0d")
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -55,7 +55,7 @@
 			(type default)
 		)
 		(layer "F.CrtYd")
-		(uuid "2dac3929-d397-4e26-94ef-560bb850fdfe")
+		(uuid "11557972-d0fb-42e9-ac6a-35e15b30570b")
 	)
 	(fp_line
 		(start -3 2.2)
@@ -65,7 +65,7 @@
 			(type default)
 		)
 		(layer "F.CrtYd")
-		(uuid "e2578e09-09a5-4751-ac0a-8af870ff2f54")
+		(uuid "4fefd4a7-199c-4f2d-91fb-2f21311972ba")
 	)
 	(fp_line
 		(start 3 -1.4)
@@ -75,7 +75,7 @@
 			(type default)
 		)
 		(layer "F.CrtYd")
-		(uuid "2dcd4bb2-dbf3-4f81-a5d2-428d02b7111a")
+		(uuid "618f43b5-18b7-44bd-8056-feac3879a900")
 	)
 	(fp_line
 		(start 3 2.2)
@@ -85,7 +85,7 @@
 			(type default)
 		)
 		(layer "F.CrtYd")
-		(uuid "64a77c95-daa2-436b-8c47-73734dbc4a41")
+		(uuid "123fdac9-ff59-4e35-86e0-8c9019240f39")
 	)
 	(fp_line
 		(start -1.8 -1.2)
@@ -95,7 +95,7 @@
 			(type default)
 		)
 		(layer "F.Fab")
-		(uuid "38ea37c5-fa9a-4a86-84db-3caf40fb31b2")
+		(uuid "01b2e05d-9fb9-495e-aa4b-cfeb68ae4543")
 	)
 	(fp_line
 		(start -1.8 1.2)
@@ -105,7 +105,7 @@
 			(type default)
 		)
 		(layer "F.Fab")
-		(uuid "c6896103-edc6-4d3b-98eb-03393cfc0438")
+		(uuid "e7372591-fd10-417e-8b12-6f003b05ead2")
 	)
 	(fp_line
 		(start -0.8 1.2)
@@ -115,7 +115,7 @@
 			(type default)
 		)
 		(layer "F.Fab")
-		(uuid "b4ce0e2a-4e72-4f3e-b4e4-e8b8a558fa92")
+		(uuid "18451238-fe64-4137-9c33-2bae881e8353")
 	)
 	(fp_line
 		(start -0.8 2)
@@ -125,7 +125,7 @@
 			(type default)
 		)
 		(layer "F.Fab")
-		(uuid "569f9cb3-daf9-4c7b-81da-1017e6777759")
+		(uuid "14dbdd4d-8ebb-48a7-a212-585a9751c932")
 	)
 	(fp_line
 		(start 0.8 1.2)
@@ -135,7 +135,7 @@
 			(type default)
 		)
 		(layer "F.Fab")
-		(uuid "02cc8d6d-1e72-41c2-a6b9-0c8f44e3924e")
+		(uuid "12f322c2-f705-45d8-bf4e-11feacd8fa54")
 	)
 	(fp_line
 		(start 0.8 2)
@@ -145,7 +145,7 @@
 			(type default)
 		)
 		(layer "F.Fab")
-		(uuid "685976a1-b492-4aab-9952-36dd6e842e05")
+		(uuid "727babf8-7e49-4967-910a-7e44b8593728")
 	)
 	(fp_line
 		(start 1.8 -1.2)
@@ -155,7 +155,7 @@
 			(type default)
 		)
 		(layer "F.Fab")
-		(uuid "ba76d1bf-bdcb-4918-8cee-6e7e1cf3568f")
+		(uuid "9a6a7e75-7221-44ca-818d-9c7d310afa19")
 	)
 	(fp_line
 		(start 1.8 1.2)
@@ -165,39 +165,41 @@
 			(type default)
 		)
 		(layer "F.Fab")
-		(uuid "2d54feb8-5da5-41c5-a2a1-8565b177e255")
+		(uuid "7dfedd5b-af0a-4b44-bf34-44e2aa24a9de")
 	)
 	(pad "1" smd roundrect
-		(at -2.3 -0.7)
-		(size 1 0.9)
+		(at -1.9 -0.69)
+		(size 1.75 1)
 		(layers "F.Cu" "F.Mask" "F.Paste")
 		(roundrect_rratio 0.25)
 		(thermal_bridge_angle 45)
-		(uuid "6463c0df-a8d1-4195-8833-8415c8a6276d")
+		(uuid "f750559c-ea1a-4f17-b6f2-e0422f448d8f")
 	)
 	(pad "1" smd roundrect
-		(at 2.3 -0.7)
-		(size 1 0.9)
+		(at 1.9 -0.69)
+		(size 1.75 1)
 		(layers "F.Cu" "F.Mask" "F.Paste")
 		(roundrect_rratio 0.25)
 		(thermal_bridge_angle 45)
-		(uuid "67dc33ef-2b30-4e67-9930-7e65239b1d3f")
+		(uuid "f1a391e7-8589-499a-980d-3eb081829163")
 	)
-	(pad "2" thru_hole circle
-		(at -2.3 0.7)
-		(size 1 1)
+	(pad "2" thru_hole rect
+		(at -1.9 0.69)
+		(size 1.75 1)
 		(drill 0.6)
 		(layers "*.Cu" "*.Mask")
 		(remove_unused_layers no)
-		(uuid "96ae201d-24c8-42fd-b3d5-6303b9f874e4")
+		(thermal_bridge_angle 45)
+		(uuid "2122adbf-98ad-4303-87ab-86fb2f1834f0")
 	)
-	(pad "2" thru_hole circle
-		(at 2.3 0.7)
-		(size 1 1)
+	(pad "2" thru_hole rect
+		(at 1.9 0.69)
+		(size 1.75 1)
 		(drill 0.6)
 		(layers "*.Cu" "*.Mask")
 		(remove_unused_layers no)
-		(uuid "34ac33ba-437f-4201-98dd-9373db9ac81a")
+		(thermal_bridge_angle 45)
+		(uuid "f78ef41e-4762-4535-a531-f39ec042c610")
 	)
 	(embedded_fonts no)
 )

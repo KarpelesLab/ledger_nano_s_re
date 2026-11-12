@@ -7,7 +7,8 @@ scratch. It OVERWRITES kicad/ledger_nano_s.{kicad_sch,kicad_pcb} and the
 custom libraries, so any manual edits made in KiCad afterwards are lost.
 
 Usage: python3 tools/gen_kicad.py   (needs KiCad 10's pcbnew Python module
-and ImageMagick, and expects docs/img/stitched_front.jpg / stitched_back.jpg)
+and ImageMagick, and expects docs/img/stitched_front.jpg, stitched_front_bare.jpg
+and stitched_back.jpg)
 """
 import base64, math, os, re, shutil, subprocess, sys, tempfile, uuid
 
@@ -56,17 +57,17 @@ def part(ref, fp, val, pos, rot=0, side="F", sym=None, note=""):
 
 part("U1", "Package_DFN_QFN:UFQFPN-32-1EP_5x5mm_P0.5mm_EP3.5x3.5mm_ThermalVias", "STM32F042K6U6",
      G(1197, 732), 180, sym="MCU_ST_STM32F0:STM32F042K6Ux")
-part("U2", PRJ + ":ST_DFN8_4.0x4.2mm_P0.97mm", "ST31 SE (NBO PHL744 7B)", G(1862, 1078), 0,
+part("U2", PRJ + ":ST_DFN8-1EP_4.0x4.2mm_P0.98mm", "ST31 SE (NBO PHL744 7B)", G(1862, 1078), 0,
      sym=PRJ + ":SE_ST31_DFN8")
 part("U3", "Package_TO_SOT_SMD:SOT-23-5", "LDO 3.0V (AD30)", G(1912, 485), 0, sym=PRJ + ":LDO_SOT23-5")
 part("U4", "Package_DFN_QFN:DFN-8-1EP_4x4mm_P0.8mm_EP2.3x3.24mm", "ST8R00", G(3435, 401), 180,
      sym=PRJ + ":ST8R00")
-part("L1", "Inductor_SMD:L_Abracon_ASPI-3012S", "10uH", G(3497, 787), 0, sym="Device:L")
+part("L1", "Inductor_SMD:L_Abracon_ASPI-3012S", "10uH", G(3497, 787), 90, sym="Device:L")
 part("J1", "Connector_USB:USB_Micro-B_Molex-105017-0001", "USB_B_Micro", None, -90,
      sym="Connector:USB_B_Micro")
 part("J2", PRJ + ":FPC_12P_P0.5mm_Pin1Top", "OLED FPC 12p", G(2225, 785), 0, sym="Connector_Generic:Conn_01x12")
-part("S1", PRJ + ":SW_SideTact_4.6x1.4mm", "SW_Push", G(3145, 1175), 0, sym="Switch:SW_Push")
-part("S2", PRJ + ":SW_SideTact_4.6x1.4mm", "SW_Push", G(1140, 1170), 0, sym="Switch:SW_Push")
+part("S1", PRJ + ":SW_SideTact_P3.8x1.38mm", "SW_Push", G(3145, 1175), 0, sym="Switch:SW_Push")
+part("S2", PRJ + ":SW_SideTact_P3.8x1.38mm", "SW_Push", G(1140, 1170), 0, sym="Switch:SW_Push")
 for ref, xy, rot, pkg in [
         ("C1", (2945, 648), 0, "0603"), ("C2", (1480, 1095), 90, "0402"), ("C3", (3477, 1035), 90, "0402"),
         ("C5", (967, 395), 0, "0402"), ("C7", (3077, 760), 0, "0603"), ("C8", (3077, 865), 0, "0603"),
@@ -131,10 +132,10 @@ def smd(fp, num, x, y, w, h, shape=pcbnew.PAD_SHAPE_ROUNDRECT):
     return p
 
 
-def pth(fp, num, x, y, d, drill):
+def pth(fp, num, x, y, w, h, drill):
     p = pcbnew.PAD(fp)
-    p.SetNumber(num); p.SetShape(pcbnew.PAD_SHAPE_CIRCLE); p.SetAttribute(pcbnew.PAD_ATTRIB_PTH)
-    p.SetLayerSet(p.PTHMask()); p.SetSize(V(d, d)); p.SetDrillSize(V(drill, drill)); p.SetPosition(V(x, y))
+    p.SetNumber(num); p.SetShape(pcbnew.PAD_SHAPE_RECT); p.SetAttribute(pcbnew.PAD_ATTRIB_PTH)
+    p.SetLayerSet(p.PTHMask()); p.SetSize(V(w, h)); p.SetDrillSize(V(drill, drill)); p.SetPosition(V(x, y))
     fp.Add(p)
 
 
@@ -154,46 +155,51 @@ def build_footprints():
     os.makedirs(FPLIB)
     fps = []
 
-    # U2: ST secure element, 8 pads, body 4.0 x 4.2 mm (measured), pitch ~0.97 mm (measured)
-    fp = new_fp("ST_DFN8_4.0x4.2mm_P0.97mm",
-                "ST secure element U2, 8-pad DFN 4.0x4.2mm body, pitch ~0.97mm, pad columns 4.72mm apart. "
-                "Dimensions measured from photos. Pin 1 = package dot corner (bottom-right), CCW numbering.")
-    pitch, cx = 0.97, 2.36
+    # U2: ST secure element. Measured on the bare-board photo: 8 pads 1.2x0.75mm,
+    # pitch 0.98mm, pad columns 4.0mm apart, plus a 2.1x3.45mm exposed pad (no vias).
+    fp = new_fp("ST_DFN8-1EP_4.0x4.2mm_P0.98mm",
+                "ST secure element U2, DFN8 4.0x4.2mm body + exposed pad. Land pattern measured from the "
+                "bare-board photo: pads 1.2x0.75mm, pitch 0.98mm, columns 4.0mm apart, EP 2.1x3.45mm. "
+                "Pin 1 = package dot corner (bottom-right on the board), CCW numbering.")
+    pitch, cx = 0.98, 2.0
     ys = [1.5 * pitch, 0.5 * pitch, -0.5 * pitch, -1.5 * pitch]
     for i, y in enumerate(ys):                     # pins 1-4 up the right side
-        smd(fp, str(i + 1), cx, y, 0.75, 0.5)
+        smd(fp, str(i + 1), cx, y, 1.2, 0.75)
     for i, y in enumerate(reversed(ys)):           # pins 5-8 down the left side
-        smd(fp, str(i + 5), -cx, y, 0.75, 0.5)
+        smd(fp, str(i + 5), -cx, y, 1.2, 0.75)
+    smd(fp, "9", 0, 0, 2.1, 3.45, pcbnew.PAD_SHAPE_RECT)
     fp_rect(fp, pcbnew.F_Fab, -2.0, -2.1, 2.0, 2.1)
     fp_line(fp, pcbnew.F_Fab, (1.5, 2.1), (2.0, 1.6))
-    fp_rect(fp, pcbnew.F_CrtYd, -3.0, -2.4, 3.0, 2.4, 0.05)
-    fp_line(fp, pcbnew.F_SilkS, (2.8, 2.35), (2.8, 2.35 - 0.01), 0.3)  # pin-1 dot
+    fp_rect(fp, pcbnew.F_CrtYd, -2.85, -2.4, 2.85, 2.4, 0.05)
+    fp_line(fp, pcbnew.F_SilkS, (2.75, 2.25), (2.75, 2.24), 0.3)  # pin-1 dot
     fps.append(fp)
 
     # J2: 12-pin 0.5mm FPC, contacts on the left, pin 1 at top, mounting tabs to the right
     fp = new_fp("FPC_12P_P0.5mm_Pin1Top",
                 "12-pin 0.5mm-pitch flip-lock FPC connector (OLED). Geometry measured from photos: "
-                "contact row at x=0, mounting tabs at x=+3.13, y=+-5.09. Pin 1 at top as on board silk.")
+                "contact row at x=0, mounting tabs at x=+3.13, y=+-4.54. Pin 1 at top as on board silk. "
+                "Tab spacing matches Hirose FH12-12S, but the pin numbering is reversed.")
     fp.SetAttributes(pcbnew.FP_SMD)
     for i in range(12):
         smd(fp, str(i + 1), 0, -2.75 + 0.5 * i, 1.2, 0.3)
-    smd(fp, "MP", 3.13, -5.09, 2.1, 1.8, pcbnew.PAD_SHAPE_RECT)
-    smd(fp, "MP", 3.13, 5.09, 2.1, 1.8, pcbnew.PAD_SHAPE_RECT)
+    smd(fp, "MP", 3.13, -4.54, 2.1, 1.8, pcbnew.PAD_SHAPE_RECT)
+    smd(fp, "MP", 3.13, 4.54, 2.1, 1.8, pcbnew.PAD_SHAPE_RECT)
     fp_rect(fp, pcbnew.F_Fab, 0.4, -5.6, 5.4, 5.6)
     fp_rect(fp, pcbnew.F_CrtYd, -0.8, -6.2, 5.8, 6.2, 0.05)
     fp_line(fp, pcbnew.F_SilkS, (-0.9, -2.75), (-1.3, -2.75), 0.15)
     fps.append(fp)
 
-    # S1/S2: side-actuated tact switch, 4 pads; bottom pair are plated through (seen on back)
-    fp = new_fp("SW_SideTact_4.6x1.4mm",
-                "Side-actuated SMD tact switch (S1/S2). Pads measured from photos (approx.): "
-                "pads at x=+-2.3, y=+-0.7. Bottom pads show solder through to the back, modelled as PTH. "
+    # S1/S2: side-actuated tact switch, 4 pads 1.75x1.0mm at x=+-1.9, y=+-0.69 (measured on the
+    # bare board); the bottom pair (board-edge side) are plated through.
+    fp = new_fp("SW_SideTact_P3.8x1.38mm",
+                "Side-actuated SMD tact switch (S1/S2). Land pattern measured on the bare board: "
+                "4 pads 1.75x1.0mm at x=+-1.9, y=+-0.69; the edge-side pair are plated through-holes. "
                 "Actuator protrudes past the board edge (+y).")
     fp.SetAttributes(0)
-    smd(fp, "1", -2.3, -0.7, 1.0, 0.9)
-    smd(fp, "1", 2.3, -0.7, 1.0, 0.9)
-    pth(fp, "2", -2.3, 0.7, 1.0, 0.6)
-    pth(fp, "2", 2.3, 0.7, 1.0, 0.6)
+    smd(fp, "1", -1.9, -0.69, 1.75, 1.0)
+    smd(fp, "1", 1.9, -0.69, 1.75, 1.0)
+    pth(fp, "2", -1.9, 0.69, 1.75, 1.0, 0.6)
+    pth(fp, "2", 1.9, 0.69, 1.75, 1.0, 0.6)
     fp_rect(fp, pcbnew.F_Fab, -1.8, -1.2, 1.8, 1.2)
     fp_rect(fp, pcbnew.F_Fab, -0.8, 1.2, 0.8, 2.0)   # actuator
     fp_rect(fp, pcbnew.F_CrtYd, -3.0, -1.4, 3.0, 2.2, 0.05)
@@ -242,11 +248,11 @@ def build_symbols():
                  [("5", "P5_MCU", "bidirectional"), ("6", "P6_MCU", "bidirectional"), ("7", "VCC", "power_in"),
                   ("8", "P8", "unspecified")],
                  [("4", "P4", "unspecified"), ("3", "P3", "bidirectional"), ("2", "GND", "power_in"),
-                  ("1", "P1", "unspecified")],
+                  ("1", "P1", "unspecified"), ("9", "EP", "passive")],
                  w=17.78,
                  descr="ST31-family secure element (marking NBO PHL744 7B). Pinout from board observation; "
                        "P5/P6 go to the STM32 (I/O and RESET?), P3 unknown destination.",
-                 fp=PRJ + ":ST_DFN8_4.0x4.2mm_P0.97mm"),
+                 fp=PRJ + ":ST_DFN8-1EP_4.0x4.2mm_P0.98mm"),
         sym_text("ST8R00",
                  [("1", "P1", "unspecified"), ("2", "P2", "unspecified"), ("3", "P3", "unspecified"),
                   ("4", "P4", "unspecified")],
@@ -418,10 +424,11 @@ def build_pcb(sym_uuids):
     board = pcbnew.BOARD()
     board.SetCopperLayerCount(2)
     ls = board.GetEnabledLayers()
-    ls.AddLayer(pcbnew.User_1); ls.AddLayer(pcbnew.User_2)
+    ls.AddLayer(pcbnew.User_1); ls.AddLayer(pcbnew.User_2); ls.AddLayer(pcbnew.User_3)
     board.SetEnabledLayers(ls)
     board.SetLayerName(pcbnew.User_1, "User.PhotoFront")
     board.SetLayerName(pcbnew.User_2, "User.PhotoBack")
+    board.SetLayerName(pcbnew.User_3, "User.PhotoFrontBare")
 
     # outline: top edge with two notches, then right, bottom, left
     xs = [0.0]
@@ -490,7 +497,13 @@ def prep_images():
     subprocess.check_call(["magick", b_in, "-flop", "-crop",
                            "%dx%d+%d+%d" % ((BW + 2) * sx, (BH + 2) * sy, 690 - sx, 330 - sy),
                            "+repage", "-resize", "%dx%d!" % (W, H), "-units", "PixelsPerInch", "-density", "300", "-quality", "85", bo])
-    return [(fo, "User.1", res), (bo, "User.2", res)]
+    # front with components removed: registered onto the same canvas as stitched_front.jpg
+    fb = os.path.join(tmp, "front_bare.jpg")
+    subprocess.check_call(["magick", os.path.join(ROOT, "docs/img/stitched_front_bare.jpg"), "-crop",
+                           "%dx%d+%d+%d" % ((BW + 2) * s, (BH + 2) * s, 644 - s, 286 - s),
+                           "+repage", "-resize", "%dx%d!" % (W, H), "-units", "PixelsPerInch", "-density", "300",
+                           "-quality", "85", fb])
+    return [(fo, "User.1", res), (bo, "User.2", res), (fb, "User.3", res)]
 
 
 def add_images(pcb_path, imgs):
