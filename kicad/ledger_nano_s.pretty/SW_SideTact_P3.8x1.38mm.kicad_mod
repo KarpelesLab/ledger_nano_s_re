@@ -7,7 +7,7 @@
 	(property "Reference" "REF**"
 		(at 0 0 0)
 		(layer "F.SilkS")
-		(uuid "54eaff80-58df-4535-8f47-4f71f4c6c72b")
+		(uuid "be94b79e-d0b9-479b-8e46-9f36fb6e21d9")
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -17,7 +17,7 @@
 	(property "Value" "SW_SideTact_P3.8x1.38mm"
 		(at 0 0 0)
 		(layer "F.Fab")
-		(uuid "9c55dd95-fa76-4fef-adef-07bee56f0488")
+		(uuid "9243263a-52f0-44b6-9750-9900c2c086cc")
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -28,7 +28,7 @@
 		(at 0 0 0)
 		(layer "F.Fab")
 		(hide yes)
-		(uuid "e5d953a0-5bba-4d34-99b1-dab5ec5deff6")
+		(uuid "fecd617a-3365-4d6f-b923-e57130df3e9a")
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -39,7 +39,7 @@
 		(at 0 0 0)
 		(layer "F.Fab")
 		(hide yes)
-		(uuid "6780de1c-d24a-46f7-8f12-41cbc2026cfb")
+		(uuid "3c71d538-6388-4934-962d-0a5c1028dd9d")
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -55,7 +55,7 @@
 			(type default)
 		)
 		(layer "F.CrtYd")
-		(uuid "a0cd88f0-d216-4a15-bbd0-6bf7a2a71ea4")
+		(uuid "b42035c0-3f07-4d8b-a21b-ab449f373452")
 	)
 	(fp_line
 		(start -3 2.2)
@@ -65,7 +65,7 @@
 			(type default)
 		)
 		(layer "F.CrtYd")
-		(uuid "5ae1c18b-035f-4202-86c0-e627a9badd44")
+		(uuid "1f8c8713-7d11-45e4-a9a4-eaf0a019df5f")
 	)
 	(fp_line
 		(start 3 -1.4)
@@ -75,7 +75,7 @@
 			(type default)
 		)
 		(layer "F.CrtYd")
-		(uuid "20e03475-b945-4b6a-a231-cba12b57538f")
+		(uuid "d8cebcd3-61a3-4a55-81b6-10c91bc3439a")
 	)
 	(fp_line
 		(start 3 2.2)
@@ -85,7 +85,7 @@
 			(type default)
 		)
 		(layer "F.CrtYd")
-		(uuid "08f37bdd-eeb6-45be-9305-4e24cc4fda98")
+		(uuid "ac988227-64ed-4ce9-8ec3-0a0d7655a202")
 	)
 	(fp_line
 		(start -1.8 -1.2)
@@ -95,7 +95,7 @@
 			(type default)
 		)
 		(layer "F.Fab")
-		(uuid "cb154beb-8eb3-483b-85e6-3370cd0f4578")
+		(uuid "9b8fade1-dd1c-489d-9fdf-a48c8f4aac5b")
 	)
 	(fp_line
 		(start -1.8 1.2)
@@ -105,7 +105,7 @@
 			(type default)
 		)
 		(layer "F.Fab")
-		(uuid "1df82be7-56c9-48ee-b998-647643784d59")
+		(uuid "eb618983-5936-456c-a36e-58933ded833d")
 	)
 	(fp_line
 		(start -0.8 1.2)
@@ -115,7 +115,7 @@
 			(type default)
 		)
 		(layer "F.Fab")
-		(uuid "6c785243-0dcd-4235-ae66-f2cf91856fce")
+		(uuid "db420ab0-82db-4094-b0ba-bebaa797677a")
 	)
 	(fp_line
 		(start -0.8 2)
@@ -125,7 +125,7 @@
 			(type default)
 		)
 		(layer "F.Fab")
-		(uuid "9edbd1ee-9d44-47ed-a334-ed0febcace17")
+		(uuid "f4029932-d39b-4e44-941c-d522c449a0d3")
 	)
 	(fp_line
 		(start 0.8 1.2)
@@ -135,7 +135,7 @@
 			(type default)
 		)
 		(layer "F.Fab")
-		(uuid "62b0093a-6a3c-4a39-b2a5-138bf7f4cbd4")
+		(uuid "575e10fc-19a3-4a0a-81a7-67c249a44a6a")
 	)
 	(fp_line
 		(start 0.8 2)
@@ -145,7 +145,7 @@
 			(type default)
 		)
 		(layer "F.Fab")
-		(uuid "d8dee5a4-b5ed-4892-a8cb-67a202fb9aae")
+		(uuid "e98221cb-710e-430f-88e9-f5442446fa42")
 	)
 	(fp_line
 		(start 1.8 -1.2)
@@ -155,7 +155,7 @@
 			(type default)
 		)
 		(layer "F.Fab")
-		(uuid "b88dc9e7-32fa-4601-88a0-0039da846691")
+		(uuid "46cfbecb-178d-4cc1-a071-b01abdd1b858")
 	)
 	(fp_line
 		(start 1.8 1.2)
@@ -165,7 +165,7 @@
 			(type default)
 		)
 		(layer "F.Fab")
-		(uuid "b20ce4a7-4dca-486e-b6d8-5597e3745154")
+		(uuid "d58c4bfc-1a92-4597-9ec4-e38e17336da0")
 	)
 	(pad "1" smd roundrect
 		(at -1.9 -0.69)
@@ -173,7 +173,7 @@
 		(layers "F.Cu" "F.Mask" "F.Paste")
 		(roundrect_rratio 0.25)
 		(thermal_bridge_angle 45)
-		(uuid "b90ab63a-d3b4-4211-b875-7ed76626d3de")
+		(uuid "a0446c64-d8e1-47af-9a5c-dc749fe2e811")
 	)
 	(pad "1" smd roundrect
 		(at 1.9 -0.69)
@@ -181,7 +181,7 @@
 		(layers "F.Cu" "F.Mask" "F.Paste")
 		(roundrect_rratio 0.25)
 		(thermal_bridge_angle 45)
-		(uuid "4d53ea58-d14c-4251-b722-1b32c2acb626")
+		(uuid "f26e66b7-8e44-475f-bb05-b16ac19db26a")
 	)
 	(pad "2" thru_hole rect
 		(at -1.9 0.69)
@@ -190,7 +190,7 @@
 		(layers "*.Cu" "*.Mask")
 		(remove_unused_layers no)
 		(thermal_bridge_angle 45)
-		(uuid "03c80409-0530-466f-9a12-fab38db13d29")
+		(uuid "c8e18927-d41b-41ea-ad52-f12dea9ba267")
 	)
 	(pad "2" thru_hole rect
 		(at 1.9 0.69)
@@ -199,7 +199,7 @@
 		(layers "*.Cu" "*.Mask")
 		(remove_unused_layers no)
 		(thermal_bridge_angle 45)
-		(uuid "c10c08ac-d782-4c7b-83e5-a8ad21823290")
+		(uuid "28ea4354-3c93-4786-8c70-dd85950df3b9")
 	)
 	(embedded_fonts no)
 )

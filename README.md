@@ -52,7 +52,7 @@ a schematic with the nets known so far. Details and assumptions are in
 |-----|---------|---------|----------------|
 | **U1** | `F042K6` / `GQ22Z 1193` / `CHN 749 A`, ST logo, e3 | UFQFPN32 (5×5 mm) with exposed pad | **STM32F042K6** Cortex-M0, 32 KB Flash, 6 KB RAM, crystal-less USB FS. This is the main (non-secure) MCU. It handles USB, the display and the buttons. Date code 2017 wk 49. **[confirmed]** |
 | **U2** | `NBO` / `PHL744` / `7B`, ST logo | DFN8 + exposed pad, **4.0 x 4.2 mm** (measured). Land pattern: pads 1.2 x 0.75 mm, pitch 0.98 mm, 2.1 x 3.45 mm EP with no vias | ST part, probably the **secure element** (ST31H320 family). ST prints internal codes rather than the part number. It is **not** an MFF2 package (MFF2 is 5x6 mm), so its pinout is ST's own (see below). Date 2017 wk 44. **[likely]** |
-| **U3** | `AD30` | SOT-23-5 (3+2 leads), pin 1 dot next to "C12" | Most likely a **3.0 V LDO** (the "30" suffix is the usual voltage code). Needs a check of the in/out pins. **[likely]** |
+| **U3** | `AD30` | SOT-23-5 (3+2 leads), pin 1 dot next to "C12" | **3.0 V LDO**: pins 1 (VIN) and 3 (EN) on VBUS with input cap C12, pin 2 GND, pin 5 (VOUT) on the +3V0 rail. **[likely, traced]** |
 | **U4** | `8R00W` / `MYS749`, ST logo, e4 | DFN8 4×4 mm with exposed pad (2×3 thermal vias on the back) | **ST8R00**, a synchronous PWM step-up DC-DC converter. Input 4–6 V, so it must run from USB VBUS rather than the 3.0 V rail. Output is set to 6–12 V by a resistor divider. Switches at 1.7 MHz, up to 1 A. Its external parts are L1, C7–C9 and the R2/R4 divider. The 6–12 V output fits an SSD1306-class OLED panel VCC (7–15 V), so it **almost certainly powers the display**. Date 2017 wk 49. **[likely — marking + datasheet]** |
 | **L1** | `100` | ~3×3 mm shielded power inductor | 10 µH. It is the inductor for the ST8R00 boost converter. **[likely]** |
 | **J1** | — | Micro-USB B receptacle, SMD with through-hole shield tabs | USB power and data. **[confirmed]** |
@@ -91,11 +91,11 @@ so going counter-clockwise from the top view:
 |-----|-------------|-----------------|
 | 1 | ? | ? |
 | 2 | Connected to the ground pour | **GND** |
-| 3 | Trace leaves, destination not traced yet | CLK? (maybe from STM32 MCO or a timer) |
+| 3 | Via to the back, destination not traced yet | I/O? (maybe PA9 / USART1_TX) |
 | 4 | ? | ? |
-| 5 | Goes to the STM32 | I/O or RST |
-| 6 | Goes to the STM32 | I/O or RST |
-| 7 | Has a nearby decoupling cap (the vertical 0603 left of U2) | **VCC** |
+| 5 | STM32 **PA8** (USART1_CK / MCO) | CLK |
+| 6 | STM32 **PA10** (USART1_RX) | I/O or RST |
+| 7 | +3V0 rail (U3 out, U1.1), decoupled by C2 | **VCC** |
 | 8 | ? | ? |
 
 Crop: [u2_context.jpg](docs/img/u2_context.jpg)
@@ -105,21 +105,22 @@ either, which is consistent with this being a different package. The ST31H320
 datasheet (NDA-only) would have the real pinout, so we have to map it from the
 board.
 
-If two of pins 5, 6 and 3 are I/O and CLK, the MCU probably still drives the
-link with an STM32F042 USART in **smartcard mode**: USART_TX to I/O,
-USART_CK to CLK, and a GPIO to RST. Which STM32 pins they land on will tell us
-which it is.
+Pin 5 lands on PA8 (USART1_CK) and pin 6 on PA10 (USART1_RX). That points
+to USART1 driving the link, possibly in **smartcard mode** with PA8 as the
+clock. In smartcard mode the I/O line is on TX (PA9), and PA9 goes to a via
+whose back route is not yet traced. See [docs/tracing.md](docs/tracing.md).
 
 ## Back side / test access
 
-- **5-pad row** (traced, see [docs/tracing.md](docs/tracing.md): TP1 GND, TP2 SWCLK, TP3 VBUS, TP4 SWDIO, TP5 NRST) with silkscreen rings near the top edge (USB half), with a dot
-  marking one end. These are round pads with solder bumps, not plated
-  through-holes. They are almost certainly a **factory programming/test
-  header**. Best guess: the STM32 SWD port (SWDIO, SWCLK, NRST, VDD, GND).
-  **[hypothesis]** Crop: [back_5pad_header.jpg](docs/img/back_5pad_header.jpg)
-- About 12 more **solder-bumped round test pads** without rings are spread
-  over the back (mostly the far half). They are likely pogo-pin bed-of-nails
-  test points, for example for the SE ISO7816 lines and the display signals.
+- **5-pad row** with silkscreen rings near the top edge (USB half), with a
+  dot marking one end. These are round solder-bumped pads, not plated
+  through-holes. They form the STM32 **SWD port**: TP1 GND, TP2 SWCLK,
+  TP3 VBUS, TP4 SWDIO, TP5 NRST. **[likely, traced]** Crop:
+  [back_5pad_header.jpg](docs/img/back_5pad_header.jpg)
+- 9 more **solder-bumped test pads** sit on the **OLED connector nets**:
+  SPI SCK/MOSI, the PA0/PA1/PA2 control lines, and the J2.1/J2.10–12 power
+  pins. They are bed-of-nails test points for the display interface.
+  **[likely, traced]**
 - **3×3 thermal via grid** = U1 exposed pad. **2×3 via grid** at the far end =
   U4 exposed pad.
 - Large oval pads next to the USB end = J1 shield tabs.
@@ -151,6 +152,10 @@ through the MCU (the "SEPROXYHAL" protocol).
 - [ ] Read R2/R4 values (or measure the boost output) and confirm the
       OLED VCC voltage. Check that it reaches J2. Check whether the MCU
       drives the ST8R00 EN pin, which would switch the display power.
-- [ ] Map the J2 pinout against the SSD1306 FPC pinouts we know.
+- [x] J2 pinout traced: SPI1 (PA5/PA7) + PA0/PA1/PA2 + 3V0 + boost out (see
+      [docs/tracing.md](docs/tracing.md)). Still to do: match it against the
+      SSD1306 FPC pinouts we know.
 - [ ] Measure the U3 output (expected 3.0 V).
+- [ ] Find where PA9 and PB7 go on the back (SE I/O? S1?), and check the
+      C5 / via conflict noted in docs/tracing.md.
 - [ ] Get higher-resolution, non-mirrored back photos for full trace mapping.

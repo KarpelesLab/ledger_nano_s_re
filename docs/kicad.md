@@ -11,7 +11,7 @@ The project is in [`kicad/`](../kicad/) (KiCad 10). Open
 | Footprints | All 31 parts (U1–U4, J1, J2, L1, S1, S2, 9 caps, 4 resistors, 14 back-side test pads) are placed at their measured positions. Accuracy is about ±0.2 mm. |
 | Photo underlays | The stitched front photo is on layer **User.1**, the mirrored back photo on **User.2**, and the front with components removed on **User.3** (best for tracing top copper). All three are scaled and aligned to the board outline and locked. Toggle them in the Layers panel to trace copper. |
 | Schematic | All symbols, linked to their footprints (F8 / "Update PCB from schematic" works). Nets are attached with labels. |
-| Nets | Traced from the photos (see [tracing.md](tracing.md)). The J2, U4 and button nets are still open. |
+| Nets | Traced from the photos and the hand-drawn trace layer in `pics/20261112_183853.xcf` (see [tracing.md](tracing.md)). They cover USB, power, the SWD header, the OLED connector, the boost converter, the SE link and S2. |
 | Tracks / vias | 60 vias are placed with nets. No tracks yet. |
 
 Overlay check (the red boxes are the KiCad pad positions drawn on the
@@ -27,11 +27,16 @@ The nets come from photo tracing. See [tracing.md](tracing.md) for the
 evidence and the confidence of each one. Summary:
 
 - **SWD header (back):** TP1 GND, TP2 SWCLK, TP3 VBUS, TP4 SWDIO, TP5 NRST
-- **USB:** J1 D−/D+ → U1 PA11/PA12, VBUS → C5 / TP3
-- **+3V0:** U1 VDD/VDDA/VDDIO2, plus a long back trace to the U3/J2 and U4 areas
-- **SE link:** U2.5 → U1 (pin not resolved yet), U2.6 → U1.20 (PA10)
-- 60 vias are placed at their measured positions, most of them with nets.
-  Tracks are still unrouted (only the ratsnest is shown).
+- **USB:** J1 D−/D+ → U1 PA11/PA12
+- **Power:** VBUS → U3 (LDO: 1 = VIN, 3 = EN, 2 = GND, 5 = VOUT) → +3V0.
+  VBUS → L1 → U4.1 (boost switch node). U4.8 → J2.1 (panel VCC). R3/R4
+  divider → U4.5.
+- **OLED (J2):** SPI1 (PA5 SCK → J2.8, PA7 MOSI → J2.9), GPIOs PA0/PA1/PA2
+  → J2.7/5/6, +3V0 → J2.4, C7/C8/C9/R2 on J2.10–12
+- **SE link:** U2.5 → PA8, U2.6 → PA10, U2.7 = +3V0
+- **Buttons:** S2 → PA15. S1 → via → back (PB7?)
+- 60 vias are placed with nets. Tracks are still unrouted (only the ratsnest
+  is shown).
 
 ## Footprint choices / assumptions
 
