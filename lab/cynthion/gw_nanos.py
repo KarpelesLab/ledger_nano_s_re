@@ -1,0 +1,78 @@
+# Cynthion r1.4 top-level for the Nano S SEPROXYHAL MCU emulator.
+#
+# Minimal self-contained ECP5 platform (avoids the luna/amaranth-0.5 `Record` clash) with just
+# what we need: the 60 MHz clock, the user LEDs, and PMOD A pins 1/2/3 = RST/CLK/IO.
+# Wiring (user, 2026-11-13): A1=RST, A2=CLK, A3=IO (open-drain, external 10k pull-up to 3V3);
+# the SE is externally powered, GND common with the Cynthion.
+#
+# Build + flash (volatile) :
+#   source ~/oss-cad-suite/environment
+#   python3 gw_nanos.py            # -> build/top.bit
+#   apollo configure build/top.bit # load into the FPGA (SRAM; gone on power cycle)
+#
+# LEDs: LED0 = booted (SESSION_START sent). LED1 toggles on every SE frame received (link alive).
+# LED2 toggles on every SCREEN_DISPLAY (0x65) frame — i.e. the SE is drawing the screen.
+
+import os
+from amaranth import *
+from amaranth.build import Resource, Pins, Clock, Attrs, Connector
+from amaranth.vendor import LatticeECP5Platform
+from amaranth_boards.resources import LEDResources
+
+from nanos_mcuemu import NanoSMcuEmu, TAG_SCREEN_DISPLAY
+
+
+class CynthionR14(LatticeECP5Platform):
+    device = "LFE5U-12F"
+    package = "BG256"
+    speed = os.getenv("ECP5_SPEED_GRADE", "8")
+    default_clk = "clk_60MHz"
+    resources = [
+        Resource("clk_60MHz", 0, Pins("A8", dir="i"), Clock(60e6), Attrs(IO_TYPE="LVCMOS33")),
+        *LEDResources(pins="E13 C13 B14 A15 D12 C11", attrs=Attrs(IO_TYPE="LVCMOS33"), invert=True),
+        # PMOD A pins 1/2/3 (balls C9/B9/D11) = RST/CLK/IO
+        Resource("sc_rst", 0, Pins("C9", dir="o"), Attrs(IO_TYPE="LVCMOS33")),
+        Resource("sc_clk", 0, Pins("B9", dir="o"), Attrs(IO_TYPE="LVCMOS33")),
+        Resource("sc_io", 0, Pins("D11", dir="io"), Attrs(IO_TYPE="LVCMOS33")),
+    ]
+    connectors = [Connector("pmod", 0, "C9 B9 D11 C12 - - C8 D8 D9 C10 - -")]
+
+    def toolchain_program(self, products, name):
+        pass  # we flash via apollo, not the platform
+
+
+class Top(Elaboratable):
+    def elaborate(self, platform):
+        m = Module()
+        # 60 MHz sync domain. CLK = 60MHz/(2*clk_div); clk_div=16 -> 1.875 MHz (ISO 7816 range).
+        # etu = 372 CLK cycles. reset held ~0.7 ms; ATR-done after a short idle gap.
+        m.submodules.emu = emu = NanoSMcuEmu(
+            clk_div=16, etu_clk=372, rst_clk=40_000, atr_idle=60_000,
+            tick_div=6_000_000, tick_ms=100,
+        )
+        rst = platform.request("sc_rst", 0)
+        clk = platform.request("sc_clk", 0)
+        io = platform.request("sc_io", 0)
+        led0 = platform.request("led", 0)
+        led1 = platform.request("led", 1)
+        led2 = platform.request("led", 2)
+
+        m.d.comb += [
+            rst.o.eq(emu.rst_o),
+            clk.o.eq(emu.clk_o),
+            # open-drain I/O: drive low only; release (Hi-Z, pull-up -> 1) otherwise
+            io.o.eq(0),
+            io.oe.eq(emu.io_oe & ~emu.io_o),
+            emu.io_i.eq(io.i),
+            led0.o.eq(emu.booted),
+        ]
+        with m.If(emu.rx_frame_stb):
+            m.d.sync += led1.o.eq(~led1.o)
+        with m.If(emu.rx_frame_stb & ((emu.rx_ftag & 0x7f) == TAG_SCREEN_DISPLAY)):
+            m.d.sync += led2.o.eq(~led2.o)
+        return m
+
+
+if __name__ == "__main__":
+    CynthionR14().build(Top(), name="top", do_program=False)
+    print("built build/top.bit")
