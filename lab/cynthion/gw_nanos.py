@@ -92,10 +92,13 @@ class Top(Elaboratable):
             clk_div=16, etu_clk=372, rst_clk=40_000, atr_idle=60_000,
             tick_div=6_000_000, tick_ms=100,
         )
+        # The Apollo UART pins (R14/T14) are shared with JTAG (TDI/TMS). A bitstream that claims
+        # T14 breaks `apollo configure` (JTAG), so the UART readback is only usable when the
+        # bitstream is loaded from SPI flash, not JTAG. Default build is JTAG-safe (no UART).
+        use_uart = os.getenv("UART", "0") == "1"
         rst = platform.request("sc_rst", 0)
         clk = platform.request("sc_clk", 0)
         io = platform.request("sc_io", 0)
-        uart = platform.request("uart", 0)
         led0 = platform.request("led", 0)
         led1 = platform.request("led", 1)
         led2 = platform.request("led", 2)
@@ -110,17 +113,21 @@ class Top(Elaboratable):
             led0.o.eq(emu.booted),
         ]
 
-        # Stream every byte the SE sends us out the Apollo UART (60 MHz / 115200 = 521).
-        m.submodules.utx = utx = UartTx(divisor=521)
-        m.submodules.fifo = fifo = SyncFIFO(width=8, depth=64)
-        m.d.comb += [
-            fifo.w_data.eq(emu.rx_byte),
-            fifo.w_en.eq(emu.rx_byte_stb),
-            utx.data.eq(fifo.r_data),
-            utx.stb.eq(fifo.r_rdy & utx.rdy),
-            fifo.r_en.eq(fifo.r_rdy & utx.rdy),
-            uart.tx.o.eq(utx.tx),
-        ]
+        if use_uart:
+            # Stream every byte the SE sends us out the Apollo UART (60 MHz / 115200 = 521).
+            # NOTE: T14 is JTAG TMS, so a UART build must be loaded from SPI flash, not `apollo
+            # configure`. Build with UART=1.
+            uart = platform.request("uart", 0)
+            m.submodules.utx = utx = UartTx(divisor=521)
+            m.submodules.fifo = fifo = SyncFIFO(width=8, depth=64)
+            m.d.comb += [
+                fifo.w_data.eq(emu.rx_byte),
+                fifo.w_en.eq(emu.rx_byte_stb),
+                utx.data.eq(fifo.r_data),
+                utx.stb.eq(fifo.r_rdy & utx.rdy),
+                fifo.r_en.eq(fifo.r_rdy & utx.rdy),
+                uart.tx.o.eq(utx.tx),
+            ]
 
         with m.If(emu.rx_frame_stb):
             m.d.sync += led1.o.eq(~led1.o)
