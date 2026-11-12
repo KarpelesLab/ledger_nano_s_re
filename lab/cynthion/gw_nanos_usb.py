@@ -58,7 +58,7 @@ class CynthionR14(LatticeECP5Platform):
                  Subsignal("nxt", Pins("F15", dir="i")),
                  Subsignal("stp", Pins("E15", dir="o")),
                  Subsignal("rst", Pins("J13", dir="o")),
-                 Attrs(IO_TYPE="LVCMOS33", SLEWRATE="FAST")),
+                 Attrs(IO_TYPE="LVCMOS33", SLEWRATE="FAST", PULLMODE="NONE")),
     ]
     connectors = []
 
@@ -73,7 +73,7 @@ class Top(Elaboratable):
             platform.add_file(os.path.basename(f), open(f).read())
 
         m.submodules.emu = emu = NanoSMcuEmu(
-            clk_div=16, etu_clk=372, rst_clk=40_000, atr_idle=60_000,
+            clk_div=16, etu_clk=372, rst_clk=40_000, atr_idle=300_000,
             tick_div=6_000_000, tick_ms=100,
         )
         rst = platform.request("sc_rst", 0)
@@ -94,26 +94,51 @@ class Top(Elaboratable):
             ulpi.clk.o.eq(ClockSignal("sync")),   # source the 60 MHz ULPI clock to the PHY
         ]
 
-        # FIFO of SE->us bytes, drained into the CDC IN (device->host) stream
+        # FIFO of SE->us bytes, drained into the CDC IN (device->host) stream.
+        # DIAGNOSTIC: also inject a 0x55 heartbeat every ~0.14 s. If the host sees periodic 0x55,
+        # the real-mode read path works; SE bytes appear interspersed when the emulator receives them.
         m.submodules.fifo = fifo = SyncFIFO(width=8, depth=512)
-        m.d.comb += [fifo.w_data.eq(emu.rx_byte), fifo.w_en.eq(emu.rx_byte_stb)]
+        # status latches so we can see the emulator state over USB (more reliable than LEDs)
+        rx_seen = Signal(); frame_seen = Signal()
+        with m.If(emu.rx_byte_stb): m.d.sync += rx_seen.eq(1)
+        with m.If(emu.rx_frame_stb): m.d.sync += frame_seen.eq(1)
+        status = Cat(C(0, 4), emu.booted, rx_seen, frame_seen, C(1, 1))  # 0x80 | flags
+        hbcnt = Signal(23)
+        m.d.sync += hbcnt.eq(hbcnt + 1)
+        hb = hbcnt == 0
+        m.d.comb += [
+            fifo.w_data.eq(Mux(emu.rx_byte_stb, emu.rx_byte, status)),
+            fifo.w_en.eq(emu.rx_byte_stb | hb),
+        ]
 
+        # power-on reset (matches the proven reticle reference): hold the USB core in reset
+        # until a 1 has shifted through POR flops.
+        por = Signal(16)
+        m.d.sync += por.eq(Cat(C(1, 1), por[0:15]))
+        reset_done = por[15]
+
+        # Hand each FIFO byte to the IN endpoint and commit it with the byte (proven reference
+        # pattern in testdata/fpga/cynthion/usb_cdc_uart.v): give = data available & endpoint ready.
         in_ready = Signal()
-        # flush (commit) the bulk packet ~1 ms after the last queued byte so data doesn't wait
-        commit_div = Signal(range(60_000 + 1)); commit = Signal()
-        with m.If(fifo.r_rdy):
-            m.d.sync += commit_div.eq(0)
-        with m.Elif(commit_div != 60_000):
-            m.d.sync += commit_div.eq(commit_div + 1)
-        m.d.comb += commit.eq(commit_div == 59_999)
+        give = Signal()
+        in_data = Signal(8)
+        test = os.getenv("TEST", "0") == "1"
+        if test:
+            # TEST mode: ignore the SE, flood the CDC with an incrementing byte to prove the USB path
+            tb = Signal(8)
+            m.d.comb += [give.eq(in_ready), in_data.eq(tb)]
+            with m.If(give):
+                m.d.sync += tb.eq(tb + 1)
+        else:
+            m.d.comb += [give.eq(fifo.r_rdy & in_ready), in_data.eq(fifo.r_data)]
 
         configured = Signal(); phy_ready = Signal()
         m.submodules.cdc = Instance(
             "usb_cdc_acm_ulpi",
             p_VID=0x1209, p_PID=0x0001,
-            p_VENDOR_ADDR=0x39, p_VENDOR_DATA=0x02,   # USB3343 SwapDP/DM (Cynthion swaps D+/D-)
+            p_VENDOR_ADDR=0x39, p_VENDOR_DATA=0x06,   # USB3343 SwapDP/DM (value from reticle's working ref)
             i_clk60=ClockSignal("sync"),
-            i_rst_n=Const(1),
+            i_rst_n=reset_done,
             i_ulpi_data_i=ulpi.data.i,
             o_ulpi_data_o=ulpi.data.o,
             o_ulpi_data_oe=ulpi.data.oe,
@@ -122,21 +147,30 @@ class Top(Elaboratable):
             o_ulpi_stp=ulpi.stp.o,
             o_ulpi_rst_n=ulpi.rst.o,
             # device -> host: our SE byte stream
-            i_in_data=fifo.r_data,
-            i_in_valid=fifo.r_rdy,
+            i_in_data=in_data,
+            i_in_valid=give,
             o_in_ready=in_ready,
-            i_in_commit=commit,
+            i_in_commit=give,
             # host -> device: discard
             i_out_ready=Const(1),
-            i_serial_state=Const(0),
+            i_serial_state=Const(0b000_0011),
             o_configured=configured,
             o_phy_ready=phy_ready,
         )
-        m.d.comb += fifo.r_en.eq(fifo.r_rdy & in_ready)
+        m.d.comb += fifo.r_en.eq(give)
 
-        m.d.comb += [led0.o.eq(emu.booted), led2.o.eq(phy_ready), led3.o.eq(configured)]
-        with m.If(emu.rx_frame_stb):
-            m.d.sync += led1.o.eq(~led1.o)
+        # diagnostics: latch whether the CDC ever offered in_ready and whether a byte ever transferred
+        latch_ready = Signal(); latch_give = Signal()
+        with m.If(in_ready):
+            m.d.sync += latch_ready.eq(1)
+        with m.If(give):
+            m.d.sync += latch_give.eq(1)
+        m.d.comb += [
+            led0.o.eq(emu.booted),       # user LED5
+            led1.o.eq(latch_ready),      # user LED4: CDC asserted in_ready at least once
+            led2.o.eq(latch_give),       # user LED3: a byte was handed to the CDC at least once
+            led3.o.eq(configured),       # user LED2
+        ]
         return m
 
 

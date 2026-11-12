@@ -89,7 +89,7 @@ class Top(Elaboratable):
         # 60 MHz sync domain. CLK = 60MHz/(2*clk_div); clk_div=16 -> 1.875 MHz (ISO 7816 range).
         # etu = 372 CLK cycles. reset held ~0.7 ms; ATR-done after a short idle gap.
         m.submodules.emu = emu = NanoSMcuEmu(
-            clk_div=16, etu_clk=372, rst_clk=40_000, atr_idle=60_000,
+            clk_div=16, etu_clk=372, rst_clk=40_000, atr_idle=300_000,
             tick_div=6_000_000, tick_ms=100,
         )
         # The Apollo UART pins (R14/T14) are shared with JTAG (TDI/TMS). A bitstream that claims
