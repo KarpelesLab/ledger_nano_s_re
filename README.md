@@ -1,0 +1,96 @@
+# Ledger Nano S — Hardware Reverse Engineering
+
+Notes on the hardware of a Ledger Nano S, starting from photos of the bare
+PCB. Raw photos are in [`pics/`](pics/). Zoomed crops of the key parts are in
+[`docs/img/`](docs/img/).
+
+> **How sure are we?** Each item below is marked as one of:
+> **[confirmed]** (read directly off the board), **[likely]** (strong
+> evidence but not checked electrically) or **[hypothesis]** (needs probing).
+
+## Photos
+
+| File | Content |
+|------|---------|
+| `20261112_174544.JPG` | Back side, far half (button S1 / U4 end) |
+| `20261112_174549.JPG` | Back side, USB half (5-pad header, U1 thermal vias) |
+| `20261112_174600.JPG` | Front, USB half (J1, U1, U2, U3, S2) |
+| `20261112_174607.JPG` | Front, far half (J2, U4, L1, S1) |
+| `20261112_174622.JPG` | Front, far half (sharper) |
+| `20261112_174629/34/41.JPG` | Front, USB half (several focus/lighting variants) |
+
+The back-side photos are mirrored compared to the front: on the back the USB
+connector is on the right.
+
+## Board overview
+
+- 2-layer-looking (maybe more) blue soldermask PCB, long thin strip that fits
+  in the swivel case. Notches along the top edge line up with the case clips.
+- All parts are on the front (top) side. The back has only traces, vias, test
+  pads and the through-hole legs/tabs of J1 and the buttons.
+- PCB date code on the back silkscreen: **`1751`** (likely 2017, week 51),
+  next to the literal text `YWX` (probably the fab's year/week template
+  label). This fits the component date codes (weeks 744 and 749 of 2017).
+- An orange paint dot on the USB shield looks like a factory QC/inspection
+  mark.
+- The PCB edges are rough and fibrous all around. This could be from
+  depanelization or from removing the board from its case.
+
+## Bill of materials (as seen)
+
+| Ref | Marking | Package | Identification |
+|-----|---------|---------|----------------|
+| **U1** | `F042K6` / `GQ22Z 1193` / `CHN 749 A`, ST logo, e3 | UFQFPN32 (5×5 mm) with exposed pad | **STM32F042K6** Cortex-M0, 32 KB Flash, 6 KB RAM, crystal-less USB FS. This is the main (non-secure) MCU. It handles USB, the display and the buttons. Date code 2017 wk 49. **[confirmed]** |
+| **U2** | `NBO` / `PHL744` / `7B`, ST logo | 8-pad DFN (~5×6 mm) | ST part. Probably the **secure element** (ST31H320 family). ST prints internal codes rather than the part number, so this is not certain. Date 2017 wk 44. **[likely]** |
+| **U3** | `AD30` | SOT-23-5 (3+2 leads), pin 1 dot next to "C12" | Most likely a **3.0 V LDO** (the "30" suffix is the usual voltage code). Needs a check of the in/out pins. **[likely]** |
+| **U4** | `8R00W` / `MYS749`, ST logo, e4 | 8-pad DFN (~3×3 mm) with exposed pad (2×3 thermal vias on the back) | ST part placed right next to inductor L1 and bulk caps C7–C9. Probably a **switching regulator (boost)** that makes the OLED panel's high VCC rail. Date 2017 wk 49. **[hypothesis]** |
+| **L1** | `100` | ~3×3 mm shielded power inductor | 10 µH. It is the power inductor for U4. **[likely]** |
+| **J1** | — | Micro-USB B receptacle, SMD with through-hole shield tabs | USB power and data. **[confirmed]** |
+| **J2** | pin 1 / pin 12 marked | 12-pin FPC/FFC connector, bottom-contact flip-lock | **OLED display** flex. The Nano S panel is a 128×32 monochrome OLED, usually driven by an SSD1306-class controller. **[likely]** |
+| **S1, S2** | — | Side-actuated SMD tactile switches (kapton covered) | The two user buttons. **[confirmed]** |
+| C2, C3, C5, C7, C8, C9, C10, C12 | — | 0402 / 0603 / 0805 MLCC | Decoupling and bulk caps. C7–C9 (0805) sit at the regulator. |
+| C1 | — | — | Silkscreen sits next to J2, but no part is visible. It is either hidden under the connector or left unpopulated. |
+| R1, R2, R3, R4 | — | 0402 | R2/R4 are a pair next to U4 (they might be a feedback divider or I²C/ISO pull-ups). |
+
+Crops: [U1](docs/img/u1_stm32f042k6.jpg) · [U2](docs/img/u2_marking.jpg) ·
+[U3](docs/img/u3_ad30.jpg) · [U4](docs/img/u4_marking.jpg) ·
+[J2](docs/img/j2_fpc.jpg) · [L1/C7–C9](docs/img/l1_c7-c9.jpg)
+
+## Back side / test access
+
+- **5-pad row** with silkscreen rings near the top edge (USB half), with a dot
+  marking one end. These are round pads with solder bumps, not plated
+  through-holes. They are almost certainly a **factory programming/test
+  header**. Best guess: the STM32 SWD port (SWDIO, SWCLK, NRST, VDD, GND).
+  **[hypothesis]** Crop: [back_5pad_header.jpg](docs/img/back_5pad_header.jpg)
+- About 12 more **solder-bumped round test pads** without rings are spread
+  over the back (mostly the far half). They are likely pogo-pin bed-of-nails
+  test points, for example for the SE ISO7816 lines and the display signals.
+- **3×3 thermal via grid** = U1 exposed pad. **2×3 via grid** at the far end =
+  U4 exposed pad.
+- Large oval pads next to the USB end = J1 shield tabs.
+
+## Expected architecture (from public Ledger documentation)
+
+```
+ USB ──J1──► STM32F042K6 (U1, "MCU") ◄──ISO7816/SPI-ish──► ST31 Secure Element (U2?)
+                 │   │
+                 │   └── S1 / S2 buttons
+                 └────── J2 ──► 128×32 OLED (SSD1306-class)
+ Power: VBUS ─► U3 LDO (3.0 V)  ;  U4 + L1 boost ─► OLED VCC (?)
+```
+
+In the Nano S design the MCU acts as a proxy. It owns USB, the screen and the
+buttons. The secure element runs BOLOS and the apps, and it drives the UI
+through the MCU (the "SEPROXYHAL" protocol).
+
+## Next steps / TODO
+
+- [ ] Probe the 5-pad header: continuity to U1 pins PA13 (SWDIO), PA14
+      (SWCLK) and NRST. Try `st-link`/OpenOCD (it will probably be RDP-locked).
+- [ ] Find U1 ↔ U2 traces and figure out the MCU–SE link (pins, protocol).
+- [ ] Confirm what U4 is: trace L1, C7–C9 and its feedback network, and measure
+      the voltage on J2 pins.
+- [ ] Map the J2 pinout against the SSD1306 FPC pinouts we know.
+- [ ] Measure the U3 output (expected 3.0 V).
+- [ ] Get higher-resolution, non-mirrored back photos for full trace mapping.
