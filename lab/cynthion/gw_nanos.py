@@ -15,11 +15,48 @@
 
 import os
 from amaranth import *
-from amaranth.build import Resource, Pins, Clock, Attrs, Connector
+from amaranth.build import Resource, Subsignal, Pins, Clock, Attrs, Connector
 from amaranth.vendor import LatticeECP5Platform
+from amaranth.lib.fifo import SyncFIFO
 from amaranth_boards.resources import LEDResources
 
 from nanos_mcuemu import NanoSMcuEmu, TAG_SCREEN_DISPLAY
+
+
+class UartTx(Elaboratable):
+    """Minimal 8N1 UART transmitter. `divisor` = sync_freq / baud."""
+    def __init__(self, divisor):
+        self.divisor = divisor
+        self.data = Signal(8)
+        self.stb = Signal()
+        self.rdy = Signal()
+        self.tx = Signal(reset=1)
+
+    def elaborate(self, platform):
+        m = Module()
+        div = Signal(range(self.divisor)); cnt = Signal(4); sh = Signal(8)
+        with m.FSM():
+            with m.State("IDLE"):
+                m.d.comb += [self.tx.eq(1), self.rdy.eq(1)]
+                with m.If(self.stb):
+                    m.d.sync += [sh.eq(self.data), div.eq(self.divisor - 1), cnt.eq(0)]
+                    m.next = "START"
+            with m.State("START"):
+                m.d.comb += self.tx.eq(0)
+                with m.If(div == 0): m.d.sync += div.eq(self.divisor - 1); m.next = "DATA"
+                with m.Else():       m.d.sync += div.eq(div - 1)
+            with m.State("DATA"):
+                m.d.comb += self.tx.eq(sh[0])
+                with m.If(div == 0):
+                    m.d.sync += [sh.eq(Cat(sh[1:8], 0)), cnt.eq(cnt + 1), div.eq(self.divisor - 1)]
+                    with m.If(cnt == 7): m.next = "STOP"
+                with m.Else():
+                    m.d.sync += div.eq(div - 1)
+            with m.State("STOP"):
+                m.d.comb += self.tx.eq(1)
+                with m.If(div == 0): m.next = "IDLE"
+                with m.Else():       m.d.sync += div.eq(div - 1)
+        return m
 
 
 class CynthionR14(LatticeECP5Platform):
@@ -34,6 +71,11 @@ class CynthionR14(LatticeECP5Platform):
         Resource("sc_rst", 0, Pins("C9", dir="o"), Attrs(IO_TYPE="LVCMOS33")),
         Resource("sc_clk", 0, Pins("B9", dir="o"), Attrs(IO_TYPE="LVCMOS33")),
         Resource("sc_io", 0, Pins("D11", dir="io"), Attrs(IO_TYPE="LVCMOS33")),
+        # UART to the Apollo debug controller -> host CDC-ACM (/dev/ttyACM1)
+        Resource("uart", 0,
+                 Subsignal("rx", Pins("R14", dir="i")),
+                 Subsignal("tx", Pins("T14", dir="o"), Attrs(PULLMODE="UP")),
+                 Attrs(IO_TYPE="LVCMOS33")),
     ]
     connectors = [Connector("pmod", 0, "C9 B9 D11 C12 - - C8 D8 D9 C10 - -")]
 
@@ -53,6 +95,7 @@ class Top(Elaboratable):
         rst = platform.request("sc_rst", 0)
         clk = platform.request("sc_clk", 0)
         io = platform.request("sc_io", 0)
+        uart = platform.request("uart", 0)
         led0 = platform.request("led", 0)
         led1 = platform.request("led", 1)
         led2 = platform.request("led", 2)
@@ -66,6 +109,19 @@ class Top(Elaboratable):
             emu.io_i.eq(io.i),
             led0.o.eq(emu.booted),
         ]
+
+        # Stream every byte the SE sends us out the Apollo UART (60 MHz / 115200 = 521).
+        m.submodules.utx = utx = UartTx(divisor=521)
+        m.submodules.fifo = fifo = SyncFIFO(width=8, depth=64)
+        m.d.comb += [
+            fifo.w_data.eq(emu.rx_byte),
+            fifo.w_en.eq(emu.rx_byte_stb),
+            utx.data.eq(fifo.r_data),
+            utx.stb.eq(fifo.r_rdy & utx.rdy),
+            fifo.r_en.eq(fifo.r_rdy & utx.rdy),
+            uart.tx.o.eq(utx.tx),
+        ]
+
         with m.If(emu.rx_frame_stb):
             m.d.sync += led1.o.eq(~led1.o)
         with m.If(emu.rx_frame_stb & ((emu.rx_ftag & 0x7f) == TAG_SCREEN_DISPLAY)):
