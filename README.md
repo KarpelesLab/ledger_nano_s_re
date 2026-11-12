@@ -91,10 +91,10 @@ so going counter-clockwise from the top view:
 |-----|-------------|-----------------|
 | 1 | ? | ? |
 | 2 | Connected to the ground pour | **GND** |
-| 3 | Via to the back, destination not traced yet | I/O? (maybe PA9 / USART1_TX) |
+| 3 | STM32 **PA9** (USART1_TX), via the back | **I/O** |
 | 4 | ? | ? |
 | 5 | STM32 **PA8** (USART1_CK / MCO) | CLK |
-| 6 | STM32 **PA10** (USART1_RX) | I/O or RST |
+| 6 | STM32 **PA10** | RST (GPIO)? |
 | 7 | +3V0 rail (U3 out, U1.1), decoupled by C2 | **VCC** |
 | 8 | ? | ? |
 
@@ -105,17 +105,17 @@ either, which is consistent with this being a different package. The ST31H320
 datasheet (NDA-only) would have the real pinout, so we have to map it from the
 board.
 
-Pin 5 lands on PA8 (USART1_CK) and pin 6 on PA10 (USART1_RX). That points
-to USART1 driving the link, possibly in **smartcard mode** with PA8 as the
-clock. In smartcard mode the I/O line is on TX (PA9), and PA9 goes to a via
-whose back route is not yet traced. See [docs/tracing.md](docs/tracing.md).
+Pins 3, 5 and 6 land on PA9 (USART1_TX), PA8 (USART1_CK) and PA10. That is
+the STM32 USART1 **smartcard-mode** wiring: TX as the half-duplex I/O line,
+CK as the card clock, plus a GPIO that is probably RST. So the MCU ↔ SE link
+is very likely ISO 7816-3 over USART1. See [docs/tracing.md](docs/tracing.md).
 
 ## Back side / test access
 
 - **5-pad row** with silkscreen rings near the top edge (USB half), with a
   dot marking one end. These are round solder-bumped pads, not plated
-  through-holes. They form the STM32 **SWD port**: TP1 GND, TP2 SWCLK,
-  TP3 VBUS, TP4 SWDIO, TP5 NRST. **[likely, traced]** Crop:
+  through-holes. They form the STM32 **SWD port**: TP1 +3V0, TP2 SWCLK,
+  TP3 GND, TP4 SWDIO, TP5 NRST. **[likely, traced]** Crop:
   [back_5pad_header.jpg](docs/img/back_5pad_header.jpg)
 - 9 more **solder-bumped test pads** sit on the **OLED connector nets**:
   SPI SCK/MOSI, the PA0/PA1/PA2 control lines, and the J2.1/J2.10–12 power
@@ -125,15 +125,16 @@ whose back route is not yet traced. See [docs/tracing.md](docs/tracing.md).
   U4 exposed pad.
 - Large oval pads next to the USB end = J1 shield tabs.
 
-## Expected architecture (from public Ledger documentation)
+## Architecture (traced; matches public Ledger documentation)
 
 ```
- USB ──J1──► STM32F042K6 (U1, "MCU") ◄──ISO7816/SPI-ish──► ST31 Secure Element (U2?)
-                 │   │
-                 │   └── S1 / S2 buttons
-                 └────── J2 ──► 128×32 OLED (SSD1306-class)
- Power: VBUS (5 V) ─► U3 LDO ─► 3.0 V logic (MCU, SE, OLED VDD)
-        VBUS (5 V) ─► U4 ST8R00 + L1 boost ─► 6–12 V ─► OLED panel VCC (J2)
+ USB ──J1── PA11/PA12 ─► STM32F042K6 (U1, "MCU")
+                          │ USART1 smartcard: PA9=I/O, PA8=CLK, PA10=RST? ─► ST31 SE (U2)
+                          │ SPI1: PA5=SCK, PA7=MOSI + PA0/PA1/PA2 ─► J2 ─► 128×32 OLED
+                          │ PA15 ◄─ S2      PB7 ◄─ S1
+                          └ SWD: back header TP1..5 = 3V0, SWCLK, GND, SWDIO, NRST
+ Power: VBUS (5 V) ─► U3 LDO (AD30) ─► +3V0 (MCU, SE, OLED VDD, U4 EN)
+        VBUS (5 V) ─► L1 ─► U4 ST8R00 boost (R3/R4 FB) ─► J2.1 OLED panel VCC
 ```
 
 In the Nano S design the MCU acts as a proxy. It owns USB, the screen and the
@@ -156,6 +157,6 @@ through the MCU (the "SEPROXYHAL" protocol).
       [docs/tracing.md](docs/tracing.md)). Still to do: match it against the
       SSD1306 FPC pinouts we know.
 - [ ] Measure the U3 output (expected 3.0 V).
-- [ ] Find where PA9 and PB7 go on the back (SE I/O? S1?), and check the
-      C5 / via conflict noted in docs/tracing.md.
+- [x] PA9 → U2.3 (SE I/O), PB7 → S1, SWD header TP1 = 3V0 / TP3 = GND
+      (back hand trace).
 - [ ] Get higher-resolution, non-mirrored back photos for full trace mapping.

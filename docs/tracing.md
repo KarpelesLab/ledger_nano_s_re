@@ -29,6 +29,13 @@ Every result here should still be checked with a continuity meter.
    and snapped to the KiCad pads and vias it touches. Check image (red =
    drawn trace, green = KiCad pads, cyan = vias):
    [trace_front_xcf.jpg](img/trace_front_xcf.jpg).
+4. Back copper, second pass: the traces were drawn by hand in red over
+   `pics/back_aligned.png` (the board-aligned back photo, as seen, 190 px/mm)
+   in `pics/back_aligned.xcf`. The layer is exported as
+   [trace_back_xcf_layer.png](img/trace_back_xcf_layer.png). Since the base
+   image is already aligned, each stroke maps straight to board mm. All 22
+   strokes end on known vias or test pads. Check image:
+   [trace_back_xcf.jpg](img/trace_back_xcf.jpg).
 
 Every front trace that runs to J2 passes through a via, and each of those
 vias leads on the back to a solder-bumped test pad. The placeholder test-pad
@@ -38,19 +45,23 @@ nets therefore became the J2 / MCU nets below.
 
 | Pad | Net | Path | Conf. |
 |-----|-----|------|-------|
-| TP1 | **GND** | stub into the back GND pour | M |
+| TP1 | **+3V0** | stub → via (3.80, 2.42) → front → C5.1 → U1.17 / via (6.91, 3.65) | H |
 | TP2 | **SWCLK** | back trace → via (5.84, 8.73) → U1.24 (PA14) | H |
-| TP3 | **VBUS** | back strap → C5.2 / VBUS | M |
+| TP3 | **GND** | thermal spokes into the back GND pour, no trace | M |
 | TP4 | **SWDIO** | back trace → via (5.47, 7.49) → U1.23 (PA13) | H |
 | TP5 | **NRST** | back trace → via (12.64, 6.70) → U1.4 (NRST), R1.1 | H |
+
+This is the usual SWD set: VDD, SWCLK, GND, SWDIO, NRST. An earlier version
+of this file had TP1 = GND and TP3 = VBUS. The hand-drawn back trace and
+the front stroke through C5 corrected that.
 
 ## Power
 
 | Net | Members | Conf. | Notes |
 |-----|---------|-------|-------|
-| VBUS | J1.1, C5.2, TP3, **U3.1, U3.3**, C12.1, **L1.1, U4.4**, C3.2 | H | Reaches the boost through via (19.14,2.33) → back along the top edge → via (31.56,6.93). |
-| +3V0 | **U3.5**, U1.1, U1.5, U1.17, U2.7, C2.2, R1.2, C10.1, J2.4, U4.6 | H | U3 is a SOT-23-5 LDO: pins 1 (VIN) and 3 (EN) on VBUS, pin 2 GND, pin 5 VOUT. |
-| GND | J1 shell, U1 EP, U4 EP, U2.2, C2.1, C5.1, U3.2/C12.2, back pour | M | U3.2–C12.2 is drawn. GND on it is inferred, because C12.1 is the VBUS input cap. |
+| VBUS | J1.1, **U3.1, U3.3**, C12.1, **L1.1, U4.4**, C3.2 | H | Reaches the boost through via (19.14,2.33) → back along the top edge → via (31.56,6.93). |
+| +3V0 | **U3.5**, TP1, C5.1, U1.1, U1.5, U1.17, U2.7, C2.2, R1.2, C10.1, J2.4, U4.6 | H | U3 is a SOT-23-5 LDO: pins 1 (VIN) and 3 (EN) on VBUS, pin 2 GND, pin 5 VOUT. |
+| GND | J1 shell, U1 EP, U4 EP, U2.2, C2.1, C5.2, TP3, U3.2/C12.2, back pour | M | U3.2–C12.2 is drawn. GND on it is inferred, because C12.1 is the VBUS input cap. C5.2 has no visible trace and is assumed to be on the pour (C5 = 3V0 decoupling). |
 | BOOST_SW | U4.1, L1.2 | H | Switch node: the inductor runs from VBUS (L1.1) to U4.1. |
 | U4_P5 | U4.5, R4.2, R3.1 (via 27.82,4.32 → back → via 29.65,1.92) | H | The node between R3 and R4. Probably the ST8R00 **feedback** (FB) pin. |
 | J2_P1 | U4.8, R3.2, C1.2, J2.1 (back trace via 29.29,5.37 ↔ via 21.64,5.11, TP10) | H | Probably the **boost output**: it feeds the divider top (R3) and the output cap (C1), and goes to OLED pin 1 (panel VCC). |
@@ -84,33 +95,34 @@ control GPIOs.
 | Pin | Net | Other end | Conf. |
 |-----|-----|-----------|-------|
 | 2 | GND | pour | M |
-| 3 | SE_P3 | via (21.17,10.60) → back, not resolved | M |
+| 3 | SE_IO | via (21.17,10.60) → back, along the bottom edge → via (5.70,5.18) → **U1.19 (PA9)** | H |
 | 5 | SE_P5 | via (12.93,8.55) → back → via (5.74,4.16) → **U1.18 (PA8)** | H |
 | 6 | SE_P6 | via (13.18,9.42) → back → via (5.97,6.03) → **U1.20 (PA10)** | H |
 | 7 | +3V0 | U1.1, C2.2 decoupling | H |
 
 On the STM32F042, PA8 is USART1_CK (or MCO), PA9 is USART1_TX and PA10 is
-USART1_RX. PA8 → U2.5 fits an ISO 7816 **CLK** driven by USART1 in smartcard
-mode. In smartcard mode, though, I/O is on TX (PA9), not RX (PA10). PA9 goes
-to via (5.70,5.18) and its back route is not resolved yet. It could be the
-path to U2.3 (via 21.17,10.60). **Probe PA9 ↔ U2.3.**
+USART1_RX. All three go to the SE:
+
+- PA9 (USART1_TX) → U2.3: the ISO 7816 **I/O** line (smartcard mode uses TX
+  as the bidirectional half-duplex line).
+- PA8 (USART1_CK) → U2.5: **CLK**.
+- PA10 → U2.6: probably **RST** driven as a GPIO, since smartcard mode
+  leaves RX unused. It could also be a second data or IRQ line.
+
+That is the textbook STM32 USART **smartcard-mode** wiring, which strongly
+suggests the MCU ↔ SE link is ISO 7816-3 framing over USART1.
 
 ## Buttons
 
 | Button | Net | Conf. | Notes |
 |--------|-----|-------|-------|
 | S2 pad 1 | PA15 (U1.25) | H | |
-| S1 pad 1 | S1_P1 → via (29.76,10.22) → back | M | The MCU pin is not traced. U1.30 (PB7) also goes to a via (8.98,9.86) and onto the back, so **PB7 is the likely candidate**. |
+| S1 pad 1 | **PB7** (U1.30): via (29.76,10.22) → back, along the bottom edge → via (8.98,9.86) | H | |
 
 Pad 2 of each switch is GND.
 
 ## Still open
 
-- **Conflict at C5:** the drawn stroke from via (3.80,2.42) runs through C5.1
-  and joins U1.17 / via (6.91,3.65). The back tracing has via (3.80,2.42) on
-  GND and via (6.91,3.65) on +3V0. The KiCad netlist keeps them separate.
-  Check with a meter.
-- The back routes of PA9 and PB7, and of U2.3 and S1.
 - J2 pins 2 and 3. U2 pins 1, 4, 8 and the EP. R2.1, R4.1 (probably GND) and
   C7.2/C8.2/C9.2 (probably GND).
 - Via (5.60,11.28) has no net.
