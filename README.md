@@ -41,7 +41,7 @@ connector is on the right.
 | Ref | Marking | Package | Identification |
 |-----|---------|---------|----------------|
 | **U1** | `F042K6` / `GQ22Z 1193` / `CHN 749 A`, ST logo, e3 | UFQFPN32 (5×5 mm) with exposed pad | **STM32F042K6** Cortex-M0, 32 KB Flash, 6 KB RAM, crystal-less USB FS. This is the main (non-secure) MCU. It handles USB, the display and the buttons. Date code 2017 wk 49. **[confirmed]** |
-| **U2** | `NBO` / `PHL744` / `7B`, ST logo | DFN8 ~5×6 mm (pad layout matches **MFF2**) | ST part, probably the **secure element** (ST31H320 family). ST prints internal codes rather than the part number. The package and pad layout match the ETSI MFF2 form factor (the soldered "SIM chip" package), so it is most likely a smart-card style device with the standard ISO 7816 pinout (see below). Date 2017 wk 44. **[likely]** |
+| **U2** | `NBO` / `PHL744` / `7B`, ST logo | DFN8 ~5×6 mm (pad layout matches **MFF2**) | ST part, probably the **secure element** (ST31H320 family). ST prints internal codes rather than the part number. The package matches the ETSI MFF2 form factor (the soldered "SIM chip" package), so it is most likely a smart-card style device. However, the pinout seen on the board is **not** standard MFF2 (see below). Date 2017 wk 44. **[likely]** |
 | **U3** | `AD30` | SOT-23-5 (3+2 leads), pin 1 dot next to "C12" | Most likely a **3.0 V LDO** (the "30" suffix is the usual voltage code). Needs a check of the in/out pins. **[likely]** |
 | **U4** | `8R00W` / `MYS749`, ST logo, e4 | DFN8 4×4 mm with exposed pad (2×3 thermal vias on the back) | **ST8R00**, a synchronous PWM step-up DC-DC converter. Input 4–6 V, so it must run from USB VBUS rather than the 3.0 V rail. Output is set to 6–12 V by a resistor divider. Switches at 1.7 MHz, up to 1 A. Its external parts are L1, C7–C9 and the R2/R4 divider. The 6–12 V output fits an SSD1306-class OLED panel VCC (7–15 V), so it **almost certainly powers the display**. Date 2017 wk 49. **[likely — marking + datasheet]** |
 | **L1** | `100` | ~3×3 mm shielded power inductor | 10 µH. It is the inductor for the ST8R00 boost converter. **[likely]** |
@@ -56,28 +56,50 @@ Crops: [U1](docs/img/u1_stm32f042k6.jpg) · [U2](docs/img/u2_marking.jpg) ·
 [U3](docs/img/u3_ad30.jpg) · [U4](docs/img/u4_marking.jpg) ·
 [J2](docs/img/j2_fpc.jpg) · [L1/C7–C9](docs/img/l1_c7-c9.jpg)
 
-## U2 secure element: expected MFF2 / ISO 7816 pinout
+## U2 secure element pinout
 
-The table below is the standard MFF2 pin mapping (ETSI TS 102 671). It maps
-the ISO 7816 card contacts C1–C8 onto the DFN8 pads. It still has to be
-checked on this board **[hypothesis]**:
+U2 has the MFF2 package (DFN8 5×6 mm). The board traces show that its pinout
+**does not follow the standard MFF2 / ISO 7816 mapping**.
 
-| DFN pin | ISO 7816 contact | Signal |
-|---------|------------------|--------|
-| 1 | C5 | GND |
-| 2 | C6 | VPP / SWP (often NC) |
-| 3 | C7 | I/O (half-duplex data) |
-| 4 | C8 | RFU / spare (USB D+ on some SIMs) |
-| 5 | C4 | RFU / spare (USB D− on some SIMs) |
-| 6 | C3 | CLK |
-| 7 | C2 | RST |
-| 8 | C1 | VCC |
+**Pin numbering:** the package dot is at the bottom-right in the front photos,
+so going counter-clockwise from the top view:
 
-Pin 1 is the corner next to the dot on the package (bottom right in the
-photos). If the pinout holds, the MCU–SE link is probably ISO 7816 driven by
-an STM32F042 USART in its built-in **smartcard mode**: USART_TX open-drain to
-I/O, USART_CK to CLK, and a GPIO to RST. Two things could suggest a
-non-standard link: spare pads C4/C8 being routed, or C6 being used.
+```
+            (towards U1/STM32)
+              L1  ┌──────┐  R1
+   pin 5 ───► ■   │      │   ■ ◄── pin 4
+   pin 6 ───► ■   │  U2  │   ■ ◄── pin 3
+   pin 7 ───► ■   │      │   ■ ◄── pin 2
+   pin 8 ───► ■   │     •│   ■ ◄── pin 1
+              L4  └──────┘  R4   (J2 side)
+```
+
+**What the board shows** (traces seen visually, not yet checked with a meter):
+
+| Pin | Observation | Likely function |
+|-----|-------------|-----------------|
+| 1 | ? | ? |
+| 2 | Connected to the ground pour | **GND** |
+| 3 | Trace leaves, destination not traced yet | CLK? (maybe from STM32 MCO or a timer) |
+| 4 | ? | ? |
+| 5 | Goes to the STM32 | I/O or RST |
+| 6 | Goes to the STM32 | I/O or RST |
+| 7 | Has a nearby decoupling cap (the vertical 0603 left of U2) | **VCC** |
+| 8 | ? | ? |
+
+Crop: [u2_context.jpg](docs/img/u2_context.jpg)
+
+For comparison, the standard MFF2 mapping (ETSI TS 102 671; written from
+memory, still to be checked) would be 1 = GND (C5), 2 = C6, 3 = I/O (C7),
+4 = C8, 5 = C4, 6 = CLK (C3), 7 = RST (C2), 8 = VCC (C1). The observed
+GND = 2 / VCC = 7 does not fit this mapping. No 180° rotation or mirrored
+numbering of it fits either. So this is either a Ledger/ST custom bond-out
+of the ST31 in an MFF2-size package, or the link is not ISO 7816 at all.
+
+If two of pins 5, 6 and 3 are I/O and CLK, the MCU probably still drives the
+link with an STM32F042 USART in **smartcard mode**: USART_TX to I/O,
+USART_CK to CLK, and a GPIO to RST. Which STM32 pins they land on will tell us
+which it is.
 
 ## Back side / test access
 
@@ -112,9 +134,9 @@ through the MCU (the "SEPROXYHAL" protocol).
 
 - [ ] Probe the 5-pad header: continuity to U1 pins PA13 (SWDIO), PA14
       (SWCLK) and NRST. Try `st-link`/OpenOCD (it will probably be RDP-locked).
-- [ ] Check the U2 MFF2 pinout with a continuity test (GND/VCC first). Then
-      map I/O, CLK and RST to U1 pins and see if they land on a USART
-      (smartcard mode). Check whether C4/C6/C8 are connected.
+- [ ] U2: confirm GND (2) and VCC (7) with a meter. Trace pin 3. Check if
+      pins 1, 4 and 8 are connected. Map pins 5 and 6 to their STM32 pins
+      (USART TX/CK in smartcard mode? GPIO?).
 - [ ] Sniff the MCU↔SE link (logic analyzer on I/O + CLK) and look for the
       ISO 7816 ATR after reset.
 - [ ] Read R2/R4 values (or measure the boost output) and confirm the
