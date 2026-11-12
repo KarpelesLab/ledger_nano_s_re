@@ -12,7 +12,7 @@ The project is in [`kicad/`](../kicad/) (KiCad 10). Open
 | Photo underlays | The stitched front photo is on layer **User.1**, the mirrored back photo on **User.2**, and the front with components removed on **User.3** (best for tracing top copper). All three are scaled and aligned to the board outline and locked. Toggle them in the Layers panel to trace copper. |
 | Schematic | All symbols, linked to their footprints (F8 / "Update PCB from schematic" works). Nets are attached with labels. |
 | Nets | Traced from the photos and the hand-drawn trace layers in `pics/20261112_183853.xcf` (front) and `pics/back_aligned.xcf` (back) (see [tracing.md](tracing.md)). They cover USB, power, the SWD header, the OLED connector, the boost converter, the SE link and S2. |
-| Tracks / vias | 62 vias are placed with nets. No tracks yet. |
+| Tracks / vias | 62 vias. **Tracks** on both layers, converted from the hand-drawn red trace layers (front and back XCF) and stored in `tools/tracks.json` (70 polylines, each snapped to its pads and vias and given its net). Widths: 0.3 mm power, 0.15 mm signal. **GND pour** on both layers. |
 
 Overlay check (the red boxes are the KiCad pad positions drawn on the
 photos):
@@ -60,8 +60,8 @@ evidence and the confidence of each one. Summary:
   → J2.7/5/6, +3V0 → J2.4, C7/C8/C9/R2 on J2.10–12
 - **SE link:** U2.3 → PA9 (I/O), U2.5 → PA8 (CLK), U2.6 → PA10, U2.7 = +3V0 (USART1 smartcard wiring)
 - **Buttons:** S2 → PA15, S1 → PB7
-- 62 vias are placed with nets. Tracks are still unrouted (only the ratsnest
-  is shown).
+- 62 vias are placed with nets. Tracks come from the hand-traced layers, and
+  both layers have a GND pour.
 
 ## Footprint choices / assumptions
 
@@ -100,9 +100,12 @@ only re-run the script to start over.
 
 ## Known caveats
 
-- DRC/ERC report many violations: unrouted nets, unknown pins, and stock
-  footprints sitting closer to the edge than the default rules allow. This
-  is expected at this stage.
+- DRC reports no shorts and 6 unconnected items (small isolated GND pour
+  islands, plus U2.2 and C2.1, whose GND connection isn't traced). The
+  remaining clearance warnings come from tracing hand-drawn strokes: the
+  tracks follow the drawing, not a design-rule-clean route.
+- Track geometry is approximate (about ±0.1 mm). The connectivity matters
+  more than the exact path.
 - The image scale assumes KiCad sizes the embedded photos at 300 PPI. If the
   photo layers don't line up with the outline when the board is opened in
   the GUI, adjust the image scale (properties of the image) to 0.1969.

@@ -10,6 +10,7 @@ Usage: python3 tools/gen_kicad.py   (needs KiCad 10's pcbnew Python module
 and ImageMagick, and expects docs/img/stitched_front.jpg, stitched_front_bare.jpg
 and stitched_back.jpg)
 """
+import json
 import base64, math, os, re, shutil, subprocess, sys, tempfile, uuid
 
 import pcbnew
@@ -555,6 +556,9 @@ SILK = {"J1": (2.8, 2.6, 0), "C5": (7.0, 1.95, 0), "U1": (10.55, 2.85, 0), "S2":
         "C3": (34.3, 9.6, 270), "S1": (34.5, 11.2, 90)}
 
 
+POWER_NETS = {"VBUS", "+3V0", "GND", "J2_P1", "BOOST_SW"}
+
+
 def build_pcb(sym_uuids):
     board = pcbnew.BOARD()
     board.SetCopperLayerCount(2)
@@ -647,8 +651,36 @@ def build_pcb(sym_uuids):
             v.SetNet(nets[n])
         board.Add(v)
 
+    board.GetDesignSettings().m_TrackMinWidth = mm(0.1)
+    # copper tracks: hand-traced red layers converted to polylines (tools/tracks.json)
+    for t in json.load(open(os.path.join(ROOT, "tools", "tracks.json"))):
+        w = t.get("w", 0.3 if t["net"] in POWER_NETS else 0.15)
+        for a, b in zip(t["pts"][:-1], t["pts"][1:]):
+            tr = pcbnew.PCB_TRACK(board)
+            tr.SetStart(V(OX + a[0], OY + a[1])); tr.SetEnd(V(OX + b[0], OY + b[1]))
+            tr.SetWidth(mm(w)); tr.SetLayer(pcbnew.F_Cu if t["layer"] == "F" else pcbnew.B_Cu)
+            if t["net"]:
+                tr.SetNet(nets[t["net"]])
+            board.Add(tr)
+
+    # GND pour on both sides (most of the real board is filled copper)
+    for layer in (pcbnew.F_Cu, pcbnew.B_Cu):
+        z = pcbnew.ZONE(board)
+        z.SetLayer(layer); z.SetNet(nets["GND"])
+        ol = z.Outline(); ol.NewOutline()
+        for x, y in ((0, 0), (BW, 0), (BW, BH), (0, BH)):
+            ol.Append(V(OX + x, OY + y))
+        z.SetLocalClearance(mm(0.2)); z.SetMinThickness(mm(0.15))
+        z.SetThermalReliefGap(mm(0.2)); z.SetThermalReliefSpokeWidth(mm(0.25))
+        z.SetPadConnection(pcbnew.ZONE_CONNECTION_THERMAL)
+        board.Add(z)
+
     path = os.path.join(OUT, PRJ + ".kicad_pcb")
     board.Save(path)
+    # zone filling only works on a board loaded from disk (crashes on an in-memory BOARD)
+    b2 = pcbnew.LoadBoard(path)
+    pcbnew.ZONE_FILLER(b2).Fill(b2.Zones())
+    b2.Save(path)
     return path
 
 
