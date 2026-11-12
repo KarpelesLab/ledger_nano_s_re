@@ -12,7 +12,7 @@ The project is in [`kicad/`](../kicad/) (KiCad 10). Open
 | Photo underlays | The stitched front photo is on layer **User.1**, the mirrored back photo on **User.2**, and the front with components removed on **User.3** (best for tracing top copper). All three are scaled and aligned to the board outline and locked. Toggle them in the Layers panel to trace copper. |
 | Schematic | All symbols, linked to their footprints (F8 / "Update PCB from schematic" works). Nets are attached with labels. |
 | Nets | Traced from the photos and the hand-drawn trace layer in `pics/20261112_183853.xcf` (see [tracing.md](tracing.md)). They cover USB, power, the SWD header, the OLED connector, the boost converter, the SE link and S2. |
-| Tracks / vias | 60 vias are placed with nets. No tracks yet. |
+| Tracks / vias | 62 vias are placed with nets. No tracks yet. |
 
 Overlay check (the red boxes are the KiCad pad positions drawn on the
 photos):
@@ -35,7 +35,7 @@ evidence and the confidence of each one. Summary:
   → J2.7/5/6, +3V0 → J2.4, C7/C8/C9/R2 on J2.10–12
 - **SE link:** U2.5 → PA8, U2.6 → PA10, U2.7 = +3V0
 - **Buttons:** S2 → PA15. S1 → via → back (PB7?)
-- 60 vias are placed with nets. Tracks are still unrouted (only the ratsnest
+- 62 vias are placed with nets. Tracks are still unrouted (only the ratsnest
   is shown).
 
 ## Footprint choices / assumptions

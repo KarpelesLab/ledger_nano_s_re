@@ -145,6 +145,8 @@ VIAS = [
     (31.32, 8.87, "GND"), (31.56, 6.93, "U3_P5"),
     (32.36, 1.53, "GND"), (32.37, 2.64, "GND"), (32.36, 3.74, "GND"),
     (33.46, 1.55, "GND"), (33.47, 2.64, "GND"), (33.49, 3.70, "GND"),
+    # missed by the first pass (thermal-relief GND vias, confirmed on both sides)
+    (21.06, 1.08, "GND"), (34.86, 9.20, "GND"),
 ]
 # Back-side test pads whose net is a dedicated trace (pad position -> net)
 TP_NETS = {(24.78, 1.94): "N_TP6", (22.34, 3.72): "N_TP7", (15.39, 6.40): "N_TP8", (24.83, 6.40): "N_TP9",

@@ -12,8 +12,10 @@ Every result here should still be checked with a continuity meter.
 
 ## Method
 
-1. Detect vias on both sides and pair the ones that match. This gave 60 real
-   vias. U2's exposed pad has **no** vias.
+1. Detect vias on both sides and pair the ones that match. This gave 60 vias.
+   A later manual sweep of the bare front found 2 more thermal-relief GND
+   vias, at (21.06,1.08) above J2 and (34.86,9.20) beside C3. Both were
+   confirmed on the back, for 62 in total. U2's exposed pad has **no** vias.
 2. Back copper: segment it by colour (copper under the mask is light blue,
    bare laminate is navy). Isolated traces stand out as islands, and
    everything else is the GND pour. See
