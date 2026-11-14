@@ -145,9 +145,43 @@ version, so it is not byte-identical to anything that source builds:
 SHA-256 `2fa78bebf0f38fadc3836bd47e695d33ed39bf66c1d02476ca9f43bb2a479e46`. It is Ledger's firmware and is
 not published here.
 
+## Second device: MCU 1.0, SE 1.3.1
+
+`capture-nanos-20261114-174856.vgk` (325 MB, 160 s) is another Nano S, on older firmware: four SE boots, the
+last one in recovery mode, onboarded from the host. The host's `GET_VERSION` reads target `0x31100002`,
+SE **1.3.1**, flags `0x87` (recovery mode, signed MCU, onboarded, PIN validated), MCU **1.0**.
+
+- **Same physical layer:** 12.05 MHz clock, ATR at 372 clocks per bit, then 4 clocks per bit.
+- **Older chunk protocol, exactly as in the published source:** the SE uses `UNSEC_CHUNK_READ` (0x32: length
+  and a reset flag, sequential reads). The first answer starts with the signed length, `00 00 7f b0`, then
+  the flash. `SESSION_START_EVENT` gives version "1.0" and features `0x00000221` (no "MCU secure" bit).
+- **Different image:** all four boots read the same image (0x0000–0x7ff7), but it differs from device 1's
+  almost everywhere. It is a different build: the vector table is clean (every unused handler is 0x080000ed),
+  and the bootloader's `0x51145E82` magic from the published source is at 0x400.
+- **Signature at 0x7fb0, as in the published Makefile,** 70 bytes DER, low-S, followed by `46 46`: ASCII
+  "FF" rather than the bytes `ff ff` (an old bug in the signing script?).
+- **The two signatures share no recoverable key.** On secp256k1, device 2's signature over SHA-256 of
+  0x0000–0x7faf recovers to
+
+  ```
+  04 90f5c9d15a0134bb019d2afd0bf297149738459706e7ac5be4abc350a1f81805
+     7224fce12ec9a65de18ec34d6e8c24db927835ea1692b14c32e9836a75dad609
+  04 d7d934d795bd9cc7751808243b0b900a3ede479de31ebb85d855a897b99a61da
+     b2056802abcc4d1fff4a4712661a0bb912cda93f1af68975217414005487be5d
+  ```
+
+  None of these is one of device 1's candidates, and neither are the keys recovered with other likely
+  messages (length prefixed, double SHA-256) or on P-256. So MCU 1.0 and MCU 1.6 are most likely signed with
+  **different keys**, perhaps changed with the 1.4 fixes to how the SE authenticates the MCU. A third image,
+  from either version, would confirm one key.
+- **Onboarding over USB in recovery mode:** the host sends a dashboard `ONBOARD` APDU (`E0 D0`) that carries
+  the PIN and the recovery phrase in clear. They pass through the MCU like any USB data. The device then asks
+  "Allow unknown manager?" and shows the public key of the host's certificate during `VALIDATE_CERTIFICATE`.
+
 ## Open questions
 
 - Whether the SE refuses to start with a modified MCU image.
+- Which key signs which MCU version: a third image is needed to pin one down.
 - Vector slots 2–10 (NMI, HardFault and the reserved ones) and 12–13 hold random-looking words instead of
   handler addresses, which the random fill of the gaps alone does not explain.
 - Whether the random fill differs between devices (it is generated at build time, so probably not).
