@@ -211,26 +211,14 @@ through the MCU (the "SEPROXYHAL" protocol).
 
 ## Next steps / TODO
 
+The board is fully traced (both sides), every part and net is mapped, the U2
+pinout and the MCU↔SE link are characterised, and the MCU firmware is captured
+(see the sections above and [docs/](docs/)). What is still open:
+
 - [ ] Probe the 5-pad header: continuity to U1 pins PA13 (SWDIO), PA14
       (SWCLK) and NRST. Try `st-link`/OpenOCD (it will probably be RDP-locked).
-- [x] U2 pinout fully mapped: 2 = GND, 3 = I/O (PA9), 5 = CLK (PA8), 6 = RST
-      (PA10), 7 = VCC (+3V0); pins 1, 4, 8 and the exposed pad are not
-      connected. Confirmed by tracing, the ATR test and the live SEPROXYHAL
-      capture.
-- [x] SE answers a standard ISO 7816 cold reset: ATR `3B 90 98 10 00`
-      (T=0, PPS1 `98`, specific mode).
-- [ ] Talk T=0 to the SE, at 4 clocks per bit after the PPS.
-- [x] Sniff the MCU↔SE traffic on a working Nano S: SEPROXYHAL 1.6, and the
-      SE reads the MCU flash at boot ([docs/seproxyhal_capture.md](docs/seproxyhal_capture.md)).
-- [ ] Read R2/R4 values (or measure the boost output) and confirm the
-      OLED VCC voltage. Check that it reaches J2. Check whether the MCU
-      drives the ST8R00 EN pin, which would switch the display power.
-- [x] J2 pinout traced: SPI1 (PA5/PA7) + PA0/PA1/PA2 + 3V0 + boost out (see
-      [docs/tracing.md](docs/tracing.md)). Still to do: match it against the
-      SSD1306 FPC pinouts we know.
-- [x] Measured the +3V0 rail (U3 output) at **2.997 V**, confirming the 3.0 V LDO.
-- [x] PA9 → U2.3 (SE I/O), PB7 → S1, SWD header TP1 = 3V0 / TP3 = GND
-      (back hand trace).
-- [x] Back copper fully traced from a board-aligned back image
-      (`pics/back_aligned.png`, 190 px/mm); every stroke ends on a known via or
-      test pad (see [docs/tracing.md](docs/tracing.md)).
+- [ ] Talk T=0 to the SE directly, at 4 clocks per bit after the PPS.
+- [ ] Confirm the OLED supply: read R2/R4 (or measure the boost output), check
+      it reaches J2, and whether the MCU drives the ST8R00 EN pin to switch the
+      display power.
+- [ ] Match the J2 pinout against the known SSD1306 FPC pinouts.
