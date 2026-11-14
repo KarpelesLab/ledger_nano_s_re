@@ -239,7 +239,28 @@ of what was signed but is not distributed.
   the 1.4 rework of MCU authentication. Those public key(s) are still unknown: pinning one down needs two
   full-flash captures of the *same* MCU version, or Ledger publishing the key.
 
-- There are no release images for MCU 1.6 or 1.12 to compare against (the repository stops at 1.1).
+- There are no release images in that repository for MCU 1.6 or 1.12 (it stops at 1.1).
+
+## Other MCU 1.6 images (jasonbhwong/Ledger)
+
+A third-party repository, [jasonbhwong/Ledger](https://github.com/jasonbhwong/Ledger) (from the author of
+[issue #1](https://github.com/LedgerHQ/nanos-nonsecure-firmware-releases/issues/1) on the releases repo), holds
+loadable MCU images that the official releases repo does not:
+
+| File | What it is |
+|---|---|
+| `mcu_1.6_over_0.8.hex` | MCU **1.6** app for bootloader 0.8, 71-byte signature at 0x7fb8 |
+| `mcu_1.6-printf_over_bl_0.8.hex` | a **printf/debug** build of 1.6 (no version string), 70-byte signature |
+| `blup_0.8_misc_m1.hex` | a bootloader-0.8 updater (self-contained app, SP marker `0xF00DBABE`) |
+
+- **This 1.6 is a different build from device 1's 1.6.** Over the app region (0x3000–0x7f00), 14 288 of 20 224
+  bytes differ, and the signatures differ. Both report version "1.6", so device 1 is a different point release
+  or a build over a different bootloader (likely 1.6.1).
+- **Their signing key could not be recovered.** These loadable files omit the bootloader (0x0000–0x3000) that is
+  part of the signed message (confirmed above with the releases), and none of our captures use bootloader 0.8.
+  `blup_0.8` embeds the bootloader, but inside a structured updater app rather than as a clean image, so it is
+  not trivially extractable. Recovering the 1.6 key would need the exact bootloader-0.8 bytes, or a full-flash
+  capture of a device running this build.
 
 ## Open questions
 
