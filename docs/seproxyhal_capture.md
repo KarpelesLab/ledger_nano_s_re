@@ -111,5 +111,7 @@ not published here.
 ## Open questions
 
 - Which curve and key the MCU firmware signature uses, and whether the SE refuses to start with a modified MCU image.
+- Vector slots 2–10 (NMI, HardFault and the reserved ones) and 12–13 hold random-looking words instead of
+  handler addresses, which the random fill of the gaps alone does not explain.
 - Whether the random fill differs between devices (it is generated at build time, so probably not).
 - Button masks: visgrok reports the first presses as "left (mask 0x02)"; check against which switch (S1 on PB7, S2 on PA15) was pressed.
