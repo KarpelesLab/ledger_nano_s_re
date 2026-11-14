@@ -158,7 +158,9 @@ the live capture below shows 4 clocks per bit, not 42.67.
 ### Live capture (MCU ↔ SE on a working device)
 
 A logic analyzer capture of CLK, I/O and RST on a working Nano S is decoded in
-[docs/seproxyhal_capture.md](docs/seproxyhal_capture.md). In short:
+[docs/seproxyhal_capture.md](docs/seproxyhal_capture.md); the protocol itself
+(framing, every tag, and which ones each firmware version uses) is documented in
+[docs/seproxyhal_protocol.md](docs/seproxyhal_protocol.md). In short:
 
 - The MCU clocks the SE at **11.96 MHz**. The ATR comes at the default 372
   clocks per bit, then a PPS (`FF 10 98 77`) switches the link to **4 clocks

@@ -1,7 +1,9 @@
 # SEPROXYHAL capture (MCU ↔ secure element)
 
 A logic analyzer capture of the link between the MCU (U1) and the secure element (U2) of a working Nano S:
-power on, PIN entry, the dashboard, then USB being enabled and enumerated by the host.
+power on, PIN entry, the dashboard, then USB being enabled and enumerated by the host. For the protocol itself
+— framing, every tag, and which ones each firmware version uses — see
+[seproxyhal_protocol.md](seproxyhal_protocol.md).
 
 | | |
 |---|---|
