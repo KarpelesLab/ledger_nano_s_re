@@ -78,6 +78,34 @@ endian). Reads are mostly 240 bytes, in no particular order.
 - The image starts with a Cortex-M0 vector table: initial SP 0x20001800 (top of the 6 KB of RAM), reset at
   0x080000c1.
 
+### The signature
+
+Assumed **secp256k1**, as Ledger uses everywhere and as the published `signMCUhex.py` does (it signs with
+the `secp256k1` Python module, libsecp256k1). The signature alone cannot prove the curve, but it is consistent:
+
+- r = `4233dca0d1a849b76ed0a6cd4ef5fa04bfceca3eab152362aae5d12d36d22ac8`,
+  s = `503dc036973e6934f7565e75e6db34c88accc8f591155c561fcd2f40f009a5b7`
+- s is in the lower half of the secp256k1 group order ("low-S"), which libsecp256k1 always produces. A random s
+  would be low half the time, so this is only weak evidence.
+- The signed message is assumed to be SHA-256 of flash 0x0000–0x7fb7, as in `signMCUhex.py` (the
+  build fills every gap, so the image is one area):
+  `34c8e1ed994a446ef70c9b256d8a6e01eb949aba4b18b9f9a39b7f3878253103`.
+
+Recovering the public key from (r, s) and that hash on secp256k1 gives two candidates, one of which is
+Ledger's MCU signing key if the curve and hash assumptions hold:
+
+```
+04 0471bb4a87d8b2b86e3f8c35b88723f2ba853ce315d4ffa326ff3bd3ab4a88a3
+   11dcdf0c93880b3693f63fada625693ba7ac9203aa7a91bd68f207b76eceffec
+04 317fa61affbb9d93754c03234d9aa594ee7794c30228240fc3be96c70d0c4338
+   121de3b01f8f83b4ac616180a78928332d6cbf7bae7b56799c59c92be158dd84
+```
+
+Recovery gives two candidates for any curve and any message, so this settles nothing by itself. The test is a
+second signed MCU image with a different hash, from another firmware version on another device or from a
+Ledger MCU update file. If its candidates share a key with these, that confirms the curve, the hashed
+range and Ledger's key all at once.
+
 ### Relation to Ledger's published MCU source
 
 Ledger published the MCU firmware source as
@@ -110,7 +138,7 @@ not published here.
 
 ## Open questions
 
-- Which curve and key the MCU firmware signature uses, and whether the SE refuses to start with a modified MCU image.
+- Whether the SE refuses to start with a modified MCU image.
 - Vector slots 2–10 (NMI, HardFault and the reserved ones) and 12–13 hold random-looking words instead of
   handler addresses, which the random fill of the gaps alone does not explain.
 - Whether the random fill differs between devices (it is generated at build time, so probably not).
