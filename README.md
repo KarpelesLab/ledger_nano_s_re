@@ -63,7 +63,7 @@ on both faces. Rebuild its data (`kicad/scene.js`, `kicad/photo_*.jpg`) after ed
 |-----|---------|---------|----------------|
 | **U1** | `F042K6` / `GQ22Z 1193` / `CHN 749 A`, ST logo, e3 | UFQFPN32 (5×5 mm) with exposed pad | **STM32F042K6** Cortex-M0, 32 KB Flash, 6 KB RAM, crystal-less USB FS. This is the main (non-secure) MCU. It handles USB, the display and the buttons. Date code 2017 wk 49. **[confirmed]** |
 | **U2** | `NBO` / `PHL744` / `7B`, ST logo | DFN8 + exposed pad, **4.0 x 4.2 mm** (measured). Land pattern: pads 1.2 x 0.75 mm, pitch 0.98 mm, 2.1 x 3.45 mm EP with no vias | ST part, probably the **secure element** (ST31H320 family). ST prints internal codes rather than the part number. It is **not** an MFF2 package (MFF2 is 5x6 mm), so its pinout is ST's own (see below). Date 2017 wk 44. **[likely]** |
-| **U3** | `AD30` | SOT-23-5 (3+2 leads), pin 1 dot next to "C12" | **3.0 V LDO**: pins 1 (VIN) and 3 (EN) on VBUS with input cap C12, pin 2 GND, pin 5 (VOUT) on the +3V0 rail. **[likely, traced]** |
+| **U3** | `AD30` | SOT-23-5 (3+2 leads), pin 1 dot next to "C12" | **3.0 V LDO**: pins 1 (VIN) and 3 (EN) on VBUS with input cap C12, pin 2 GND, pin 5 (VOUT) on the +3V0 rail (measured **2.997 V**). **[confirmed]** |
 | **U4** | `8R00W` / `MYS749`, ST logo, e4 | DFN8 4×4 mm with exposed pad (2×3 thermal vias on the back) | **ST8R00**, a synchronous PWM step-up DC-DC converter. Input 4–6 V, so it must run from USB VBUS rather than the 3.0 V rail. Output is set to 6–12 V by a resistor divider. Switches at 1.7 MHz, up to 1 A. Its external parts are L1, C7–C9 and the R2/R4 divider. The 6–12 V output fits an SSD1306-class OLED panel VCC (7–15 V), so it **almost certainly powers the display**. Date 2017 wk 49. **[likely — marking + datasheet]** |
 | **L1** | `100` | ~3×3 mm shielded power inductor | 10 µH. It is the inductor for the ST8R00 boost converter. **[likely]** |
 | **J1** | — | Micro-USB B receptacle, SMD with through-hole shield tabs | USB power and data. **[confirmed]** |
@@ -228,7 +228,7 @@ through the MCU (the "SEPROXYHAL" protocol).
 - [x] J2 pinout traced: SPI1 (PA5/PA7) + PA0/PA1/PA2 + 3V0 + boost out (see
       [docs/tracing.md](docs/tracing.md)). Still to do: match it against the
       SSD1306 FPC pinouts we know.
-- [ ] Measure the U3 output (expected 3.0 V).
+- [x] Measured the +3V0 rail (U3 output) at **2.997 V**, confirming the 3.0 V LDO.
 - [x] PA9 → U2.3 (SE I/O), PB7 → S1, SWD header TP1 = 3V0 / TP3 = GND
       (back hand trace).
 - [ ] Get higher-resolution, non-mirrored back photos for full trace mapping.
