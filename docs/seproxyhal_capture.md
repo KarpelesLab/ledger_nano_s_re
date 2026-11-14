@@ -106,6 +106,15 @@ second signed MCU image with a different hash, from another firmware version on 
 Ledger MCU update file. If its candidates share a key with these, that confirms the curve, the hashed
 range and Ledger's key all at once.
 
+Neither candidate appears in the MCU image (the check runs in the SE, which holds the key) or in a web search.
+
+Background: Ledger describes this check (the SE asks the MCU to dump its memory, hashes it and checks the
+signature at each boot) in its security bulletins
+[LSB-002](https://donjon.ledger.com/lsb/002/) and [LSB-005](https://donjon.ledger.com/lsb/005/), which report
+that it could be bypassed on older firmware (see also
+[Saleem Rashid, 2018](https://saleemrashid.com/2018/03/20/breaking-ledger-security-model/)). The version-1.4
+fixes changed how the SE authenticates the MCU, which may be where `UNSEC_CHUNK_READ_EXT` comes from.
+
 ### Relation to Ledger's published MCU source
 
 Ledger published the MCU firmware source as
