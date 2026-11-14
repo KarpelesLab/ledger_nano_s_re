@@ -196,37 +196,55 @@ That boot reports **SEPROXYHAL version 1.12, MCU bootloader 0.11**, and the host
      822bd3b885bf7058d19a34c51381335e6150d998312a3b35fd37a086f1308974
   ```
 
-### No shared signing key across the three versions
+### The three versions, their signatures
 
-With the assumed message (SHA-256 of flash from 0 to the signed length), the three MCU firmware versions
-recover to **three disjoint key pairs**: no key is shared by any two of MCU 1.0, 1.6 and 1.12.
+| Version | SE | Signed length | DER sig | Trailer | Signing key |
+|---|---|---|---|---|---|
+| MCU 1.0 | 1.3.1 | 0x7fb0 | 70 bytes | `46 46` ("FF") then `ff…` | **Ledger root of trust** (public releases) |
+| MCU 1.6 | (cap. 1) | 0x7fb8 | 70 bytes | `ff ff` | other Ledger key (unknown) |
+| MCU 1.12 | 1.6.0 | 0x7fb8 | 71 bytes | `ff` | other Ledger key (unknown) |
 
-| Version | SE | Signed length | DER sig | Trailer |
-|---|---|---|---|---|
-| MCU 1.0 | 1.3.1 | 0x7fb0 | 70 bytes | `46 46` ("FF") then `ff…` |
-| MCU 1.6 | (cap. 1) | 0x7fb8 | 70 bytes | `ff ff` |
-| MCU 1.12 | 1.6.0 | 0x7fb8 | 71 bytes | `ff` |
+## Match against the official release images
 
-If a single Ledger key signed all of them over this message, every signature would recover that one key (ECDSA
-recovery gives the real key plus one decoy per signature), so at least one key would be shared. None is. That
-leaves two possibilities, and this capture does not separate them:
+Ledger publishes signed MCU images at
+[LedgerHQ/nanos-nonsecure-firmware-releases](https://github.com/LedgerHQ/nanos-nonsecure-firmware-releases):
+`nanosr1` (version 1.0) and `nanosr11` (version 1.1), each a `token.loadable.signed_perso_11.hex`. These are
+the loadable images (the app above the bootloader, 0x08003000 onward); the bootloader at 0x0000–0x3000 is part
+of what was signed but is not distributed.
 
-1. **Each MCU version is signed with its own key** (plausible: Ledger's 1.4 release reworked how the SE
-   authenticates the MCU, and the DER length and trailer differ per version), or
-2. **the signed message is not simply SHA-256(flash\[0:signed_len])** — e.g. a different range, a salt, or a
-   prefix — in which case all three recoveries are over the wrong digest and none of the candidates is real.
+- **Device 2 (MCU 1.0) is the `nanosr1` release.** Over the app region 0x3000–0x7ff8 — all the code **and the
+  signature** — the two are byte-for-byte identical. The only difference is six fill bytes at 0x7ff8–0x7ffd,
+  past the signature and outside the signed area, where the release hex has `46` ("FF") and the device has `ff`.
+  Because an ECDSA signature is tied to one (key, message), identical signature bytes mean the device's full
+  signed image (bootloader included) equals the release's, confirming the extraction against an official artifact.
 
-So the earlier guess that device 1's key was one of its two candidates is **not confirmed**; the public key(s)
-remain unknown, and even the signed message is now in doubt. Resolving it needs either Ledger's published MCU
-public key(s) or a second signature over a *known-identical* image (same version, same device) to check the
-digest assumption.
+- **The signed message and curve are confirmed.** Grafting device 2's bootloader (0x0000–0x3000) under the
+  `nanosr11` app and recovering keys from both releases on secp256k1, over `SHA-256(flash[0:signed_len])` of
+  the whole image, gives **one** shared key:
+
+  ```
+  04 90f5c9d15a0134bb019d2afd0bf297149738459706e7ac5be4abc350a1f81805
+     7224fce12ec9a65de18ec34d6e8c24db927835ea1692b14c32e9836a75dad609
+  ```
+
+  This key is documented online as the **Ledger public key (root of trust)** (e.g. Rootstock's
+  [pNetwork HSM attestation page](https://dev.rootstock.io/img/rsk/architecture/powpeg-hsm-attestation/pnetwork.html)),
+  so the public releases are signed under Ledger's root of trust. Device 2's signature **verifies** under it;
+  that it is also the common key of two different releases confirms the curve (secp256k1) and the message
+  (SHA-256 of the full flash from 0 to the signed length).
+
+- **Devices 1 and 6 use a different key.** The MCU 1.6 and MCU 1.12 signatures do **not** verify under the
+  root-of-trust key, and they share no recovered key with each other. So these units are signed with other
+  Ledger key(s), and MCU 1.6 and 1.12 appear to use different keys again — consistent with a key change around
+  the 1.4 rework of MCU authentication. Those public key(s) are still unknown: pinning one down needs two
+  full-flash captures of the *same* MCU version, or Ledger publishing the key.
+
+- There are no release images for MCU 1.6 or 1.12 to compare against (the repository stops at 1.1).
 
 ## Open questions
 
 - Whether the SE refuses to start with a modified MCU image.
-- The MCU signature's public key(s), and whether the signed message really is SHA-256(flash\[0:signed_len]):
-  the three versions share no recovered key, so either there is a key per version or the digest assumption is
-  wrong (see above).
+- The MCU signing key(s) for 1.6 and 1.12 (the root-of-trust key used for the 1.0/1.1 releases is known, above).
 - Vector slots 2–10 (NMI, HardFault and the reserved ones) and 12–13 hold random-looking words instead of
   handler addresses, which the random fill of the gaps alone does not explain.
 - Whether the random fill differs between devices (it is generated at build time, so probably not).
