@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ledger Nano S board map</title>
+<style>
+  :root {
+    --bg: #f6f6f3; --fg: #1d1f22; --muted: #5d636b; --card: #ffffff; --line: #dcdcd6; --accent: #1f5fae;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #15171b; --fg: #e8e8e8; --muted: #a0a4ab; --card: #1e2126; --line: #31353c; --accent: #6ea8ff; }
+  }
+  html { background: var(--bg); }
+  body { margin: 0 auto; max-width: 920px; padding: 32px 16px 64px; color: var(--fg); background: var(--bg);
+         font: 16px/1.6 system-ui, -apple-system, Segoe UI, sans-serif; }
+  h1 { font-size: 30px; line-height: 1.2; margin: 0 0 8px; }
+  h2 { font-size: 21px; margin: 40px 0 8px; }
+  .lead { font-size: 18px; color: var(--muted); margin-top: 0; }
+  a { color: var(--accent); }
+  .hero { display: block; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 18px;
+          margin: 24px 0; text-decoration: none; color: inherit; }
+  .hero img { width: 100%; height: auto; border-radius: 6px; display: block; }
+  .hero p { margin: 12px 0 0; color: var(--muted); font-size: 15px; }
+  .go { display: inline-block; margin-top: 12px; padding: 8px 14px; border-radius: 6px; background: var(--accent); color: var(--bg);
+        font-weight: 600; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  td:first-child { white-space: nowrap; }
+  .tablewrap { overflow-x: auto; }
+  code { font: 13px ui-monospace, monospace; }
+  .note { border-left: 3px solid var(--accent); padding: 4px 12px; color: var(--muted); }
+  ul { padding-left: 20px; }
+</style>
+</head>
+<body>
+<h1>Ledger Nano S board map</h1>
+<p class="lead">A KiCad reconstruction of the Ledger Nano S main board from photos, with the copper traced by hand,
+  that you can explore in 3D.</p>
+
+<a class="hero" href="kicad/viewer3d.html">
+  <img src="docs/img/render_iso.png" alt="Render of the reconstructed Nano S board" width="2400" height="1300">
+  <p>Every part with its marking, the copper on both sides and the board photos. Hover a part for what it is and the
+    net on each pin, or a pad, track or via to light up its whole net on both sides.</p>
+  <span class="go">Open the 3D viewer</span>
+</a>
+
+<h2>What is on the board</h2>
+<div class="tablewrap">
+<table>
+  <tr><th>Part</th><th>What it is</th></tr>
+  <tr><td>U1 STM32F042K6</td><td>Main (non-secure) MCU, Cortex-M0 with crystal-less USB (UFQFPN32). It owns USB, the
+    display and the buttons, and proxies them for the secure element.</td></tr>
+  <tr><td>U2 ST31 secure element</td><td>DFN8, 4.0 × 4.2 mm, marked NBO / PHL744 / 7B. Talks ISO 7816-3 T=0 to the
+    MCU's USART1 in smartcard mode: I/O on PA9, CLK on PA8, RST on PA10. Its ATR, <code>3B 90 98 10 00</code>, was
+    read with the chip off the board.</td></tr>
+  <tr><td>U3 LDO (AD30)</td><td>3.0 V regulator from USB VBUS for the MCU, the secure element and the OLED logic.</td></tr>
+  <tr><td>U4 ST8R00 + L1</td><td>Step-up converter from VBUS making the 6–12 V OLED panel supply.</td></tr>
+  <tr><td>J1, J2, S1, S2</td><td>Micro-USB receptacle, the 12-pin FPC connector of the 128 × 32 OLED (SPI from the MCU),
+    and the two side buttons.</td></tr>
+  <tr><td>Back test pads</td><td>A 5-pad SWD header (+3V0, SWCLK, GND, SWDIO, NRST) and nine bed-of-nails pads on the
+    OLED nets.</td></tr>
+</table>
+</div>
+
+<h2>Using the 3D viewer</h2>
+<ul>
+  <li>Drag to rotate, right-drag to pan, scroll to zoom; the Top, Bottom and Angle buttons reset the camera. On a
+    phone or tablet, drag to rotate, pinch to zoom, drag with two fingers to pan, and tap anything for details.</li>
+  <li>Hover a part for its description and the net on each of its pins. Hover a track, via or pad to light up its net
+    on both sides, with what it does and every pad on it.</li>
+  <li><b>Photos on the board</b> lays the photos of the bare front and of the back on the two faces. The
+    reconstructed copper is hidden but still lights up when you hover a trace on the photo.</li>
+  <li>Hide the components, pours, tracks or silkscreen from the panel to see what is underneath.</li>
+</ul>
+
+<h2>Caveats</h2>
+<p class="note">This is a reconstruction from photos, not the manufacturer's design. Positions are accurate to about
+  0.2 mm, footprints and 3D models are approximate, and pin names ending in “?” are inferences that still need a meter.
+  The notes, evidence and confidence of every net are in the
+  <a href="https://github.com/KarpelesLab/ledger_nano_s_re">repository</a>.</p>
+
+<p class="note">Ledger and Nano S are trademarks of Ledger SAS; this project is not affiliated with or endorsed by Ledger.</p>
+</body>
+</html>

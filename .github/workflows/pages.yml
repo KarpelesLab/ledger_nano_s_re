@@ -1,0 +1,61 @@
+# Publish the board viewer to GitHub Pages: the landing page and the 3D viewer (kicad/viewer3d.html) with
+# the data files it loads. Nothing is built here; kicad/scene.js and kicad/photo_*.jpg are committed after
+# running tools/export_scene.py.
+name: Deploy viewer to GitHub Pages
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# one deployment at a time; let a running one finish
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Collect the site
+        run: |
+          mkdir -p _site/kicad _site/docs/img
+          cp index.html _site/
+          cp docs/img/render_iso.png _site/docs/img/
+          cp kicad/viewer3d.html kicad/scene.js kicad/photo_front.jpg kicad/photo_back.jpg _site/kicad/
+          # fail early if a page refers to a local file that was not copied
+          for page in _site/index.html _site/kicad/viewer3d.html; do
+            dir=$(dirname "$page")
+            for src in $(grep -o '\(src\|href\)="[^"#]*"' "$page" | sed 's/^[a-z]*="//; s/"$//' | grep -v '^\(https\?:\|mailto:\)'); do
+              test -e "$dir/$src" || { echo "missing $dir/$src (from $page)"; exit 1; }
+            done
+          done
+          # files the viewer loads from its scene data
+          for f in $(grep -o '"photo_[a-z]*\.jpg"' kicad/scene.js | tr -d '"'); do
+            test -f "_site/kicad/$f" || { echo "missing _site/kicad/$f (from scene.js)"; exit 1; }
+          done
+          touch _site/.nojekyll
+          du -sh _site
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

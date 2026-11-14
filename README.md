@@ -4,6 +4,8 @@ Notes on the hardware of a Ledger Nano S, starting from photos of the bare
 PCB. Raw photos are in [`pics/`](pics/). Zoomed crops of the key parts are in
 [`docs/img/`](docs/img/).
 
+**Interactive 3D board map: https://karpeleslab.github.io/ledger_nano_s_re/**
+
 > **How sure are we?** Each item below is marked as one of:
 > **[confirmed]** (read directly off the board), **[likely]** (strong
 > evidence but not checked electrically) or **[hypothesis]** (needs probing).
@@ -48,8 +50,9 @@ a schematic with the nets known so far. Details and assumptions are in
 
 ![3D render](docs/img/render_iso.png)
 
-**Interactive 3D view:** open [`kicad/viewer3d.html`](kicad/viewer3d.html) (serve the `kicad/`
-folder over HTTP, e.g. `python3 -m http.server -d kicad`). Hover a part for what it is and the net on
+**Interactive 3D view:** [online](https://karpeleslab.github.io/ledger_nano_s_re/kicad/viewer3d.html) or [`kicad/viewer3d.html`](kicad/viewer3d.html), published on GitHub Pages by
+`.github/workflows/pages.yml` on every push to `master`. To open it locally, serve the `kicad/` folder
+over HTTP (e.g. `python3 -m http.server -d kicad`). Hover a part for what it is and the net on
 each pin, or a pad, track or via to light up its whole net on both sides. The board photos can be laid
 on both faces. Rebuild its data (`kicad/scene.js`, `kicad/photo_*.jpg`) after editing the board with
 `python3 tools/export_scene.py`.
