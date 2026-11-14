@@ -168,7 +168,9 @@ A logic analyzer capture of CLK, I/O and RST on a working Nano S is decoded in
   the MCU forwards buttons, ticks and USB events, and the SE answers USB
   enumeration itself. USB only comes up after the PIN is entered.
 - At every boot the SE first **reads the MCU's whole 32 KB flash** over the
-  link; the flash ends with an ECDSA signature over its first 0x7fb8 bytes.
+  link; the flash ends with a secp256k1 ECDSA signature. Images from MCU 1.0,
+  1.6 and 1.12 recover to three disjoint keys, so either there is a key per
+  version or the signed message is not a plain SHA-256 of the image.
   `tools/mcu_flash_from_seph.py` rebuilds the image from a capture.
 
 ## Back side / test access

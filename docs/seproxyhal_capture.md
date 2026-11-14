@@ -171,17 +171,62 @@ SE **1.3.1**, flags `0x87` (recovery mode, signed MCU, onboarded, PIN validated)
   ```
 
   None of these is one of device 1's candidates, and neither are the keys recovered with other likely
-  messages (length prefixed, double SHA-256) or on P-256. So MCU 1.0 and MCU 1.6 are most likely signed with
-  **different keys**, perhaps changed with the 1.4 fixes to how the SE authenticates the MCU. A third image,
-  from either version, would confirm one key.
+  messages (length prefixed, double SHA-256) or on P-256.
 - **Onboarding over USB in recovery mode:** the host sends a dashboard `ONBOARD` APDU (`E0 D0`) that carries
   the PIN and the recovery phrase in clear. They pass through the MCU like any USB data. The device then asks
   "Allow unknown manager?" and shows the public key of the host's certificate during `VALIDATE_CERTIFICATE`.
 
+## Third capture: a firmware update and MCU 1.12
+
+`capture-nanos-20261114-180148.vgk` (1.25 GB, 730 s) is a longer session that includes an MCU firmware
+update. It holds 32 SE boots: a long run of short reset pulses, two host secure-channel sessions (292 then
+604 commands, tens of KB each, the actual update payload), and finally boot 32 running the updated firmware.
+That boot reports **SEPROXYHAL version 1.12, MCU bootloader 0.11**, and the host reads target `0x31100004`,
+**SE 1.6.0, MCU 1.12**, running BOLOS 1.6.0.
+
+- **Same read path as device 1:** boot 32 uses `UNSEC_CHUNK_READ_EXT`, signed length 0x7fb8, and the image
+  reads cleanly (0x0000–0x7fff, no conflicts). SHA-256 `6da013f8f3c2376b040112af6d75d13c2e108eda8c4121412ba081188f68bd8f`.
+- **A third signing key.** The signature is at 0x7fb8, 71 bytes DER (the 1.6 one was 70), followed by a
+  single `ff`. On secp256k1 over SHA-256 of 0x0000–0x7fb7 it recovers to
+
+  ```
+  04 c44aa5822fb392069bd2aeb79898d7b263d7e8fbc4b37e21a4ca5b23d3d2c772
+     1451c3eb3ee4b7a448847f1640e129d0302da06ee2edc9c8c354afa997080a6b
+  04 d1152ea5fa739fd71d4812d65dfa6fbf9ac31321f368839d42d2209606493d12
+     822bd3b885bf7058d19a34c51381335e6150d998312a3b35fd37a086f1308974
+  ```
+
+### No shared signing key across the three versions
+
+With the assumed message (SHA-256 of flash from 0 to the signed length), the three MCU firmware versions
+recover to **three disjoint key pairs**: no key is shared by any two of MCU 1.0, 1.6 and 1.12.
+
+| Version | SE | Signed length | DER sig | Trailer |
+|---|---|---|---|---|
+| MCU 1.0 | 1.3.1 | 0x7fb0 | 70 bytes | `46 46` ("FF") then `ff…` |
+| MCU 1.6 | (cap. 1) | 0x7fb8 | 70 bytes | `ff ff` |
+| MCU 1.12 | 1.6.0 | 0x7fb8 | 71 bytes | `ff` |
+
+If a single Ledger key signed all of them over this message, every signature would recover that one key (ECDSA
+recovery gives the real key plus one decoy per signature), so at least one key would be shared. None is. That
+leaves two possibilities, and this capture does not separate them:
+
+1. **Each MCU version is signed with its own key** (plausible: Ledger's 1.4 release reworked how the SE
+   authenticates the MCU, and the DER length and trailer differ per version), or
+2. **the signed message is not simply SHA-256(flash\[0:signed_len])** — e.g. a different range, a salt, or a
+   prefix — in which case all three recoveries are over the wrong digest and none of the candidates is real.
+
+So the earlier guess that device 1's key was one of its two candidates is **not confirmed**; the public key(s)
+remain unknown, and even the signed message is now in doubt. Resolving it needs either Ledger's published MCU
+public key(s) or a second signature over a *known-identical* image (same version, same device) to check the
+digest assumption.
+
 ## Open questions
 
 - Whether the SE refuses to start with a modified MCU image.
-- Which key signs which MCU version: a third image is needed to pin one down.
+- The MCU signature's public key(s), and whether the signed message really is SHA-256(flash\[0:signed_len]):
+  the three versions share no recovered key, so either there is a key per version or the digest assumption is
+  wrong (see above).
 - Vector slots 2–10 (NMI, HardFault and the reserved ones) and 12–13 hold random-looking words instead of
   handler addresses, which the random fill of the gaps alone does not explain.
 - Whether the random fill differs between devices (it is generated at build time, so probably not).
