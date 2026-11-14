@@ -231,4 +231,6 @@ through the MCU (the "SEPROXYHAL" protocol).
 - [x] Measured the +3V0 rail (U3 output) at **2.997 V**, confirming the 3.0 V LDO.
 - [x] PA9 → U2.3 (SE I/O), PB7 → S1, SWD header TP1 = 3V0 / TP3 = GND
       (back hand trace).
-- [ ] Get higher-resolution, non-mirrored back photos for full trace mapping.
+- [x] Back copper fully traced from a board-aligned back image
+      (`pics/back_aligned.png`, 190 px/mm); every stroke ends on a known via or
+      test pad (see [docs/tracing.md](docs/tracing.md)).
