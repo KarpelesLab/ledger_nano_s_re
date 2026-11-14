@@ -4,3 +4,6 @@ fp-info-cache
 _autosave-*
 *.lck
 __pycache__/
+
+# MCU firmware images rebuilt from captures (Ledger's firmware, not to be published)
+*.bin
