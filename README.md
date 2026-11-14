@@ -152,7 +152,24 @@ TA2=00 specific mode: T=0 at Fi/Di from TA1 (no PPS)
 ```
 
 This confirms the pinout (3 = I/O, 5 = CLK, 6 = RST). The MCU ↔ SE link is
-ISO 7816 **T=0** at F/D = 512/12, which is about 45.6 kbaud at a 1.95 MHz clock.
+ISO 7816 **T=0**. Di index 8 is 12 in ISO's table, but Ledger uses it as 128:
+the live capture below shows 4 clocks per bit, not 42.67.
+
+### Live capture (MCU ↔ SE on a working device)
+
+A logic analyzer capture of CLK, I/O and RST on a working Nano S is decoded in
+[docs/seproxyhal_capture.md](docs/seproxyhal_capture.md). In short:
+
+- The MCU clocks the SE at **11.96 MHz**. The ATR comes at the default 372
+  clocks per bit, then a PPS (`FF 10 98 77`) switches the link to **4 clocks
+  per bit, about 3 Mbaud** (an earlier version of this README gave 45.6 kbaud
+  from the ISO table).
+- On top runs **SEPROXYHAL 1.6**: the SE draws the screen as BAGL elements,
+  the MCU forwards buttons, ticks and USB events, and the SE answers USB
+  enumeration itself. USB only comes up after the PIN is entered.
+- At every boot the SE first **reads the MCU's whole 32 KB flash** over the
+  link; the flash ends with an ECDSA signature over its first 0x7fb8 bytes.
+  `tools/mcu_flash_from_seph.py` rebuilds the image from a capture.
 
 ## Back side / test access
 
@@ -173,7 +190,7 @@ ISO 7816 **T=0** at F/D = 512/12, which is about 45.6 kbaud at a 1.95 MHz clock.
 
 ```
  USB ──J1── PA11/PA12 ─► STM32F042K6 (U1, "MCU")
-                          │ USART1 smartcard: PA9=I/O, PA8=CLK, PA10=RST? ─► ST31 SE (U2)
+                          │ USART1 smartcard: PA9=I/O, PA8=CLK 12 MHz, PA10=RST ─► ST31 SE (U2), 3 Mbaud
                           │ SPI1: PA5=SCK, PA7=MOSI + PA0/PA1/PA2 ─► J2 ─► 128×32 OLED
                           │ PA15 ◄─ S2      PB7 ◄─ S1
                           └ SWD: back header TP1..5 = 3V0, SWCLK, GND, SWDIO, NRST
@@ -193,9 +210,10 @@ through the MCU (the "SEPROXYHAL" protocol).
       pins 1, 4 and 8 are connected. Map pins 5 and 6 to their STM32 pins
       (USART TX/CK in smartcard mode? GPIO?).
 - [x] SE answers a standard ISO 7816 cold reset: ATR `3B 90 98 10 00`
-      (T=0, F/D 512/12, specific mode).
-- [ ] Talk T=0 to the SE (APDUs at etu = 42.67 clocks), and sniff the MCU↔SE
-      traffic on a working Nano S to learn the command set.
+      (T=0, PPS1 `98`, specific mode).
+- [ ] Talk T=0 to the SE, at 4 clocks per bit after the PPS.
+- [x] Sniff the MCU↔SE traffic on a working Nano S: SEPROXYHAL 1.6, and the
+      SE reads the MCU flash at boot ([docs/seproxyhal_capture.md](docs/seproxyhal_capture.md)).
 - [ ] Read R2/R4 values (or measure the boost output) and confirm the
       OLED VCC voltage. Check that it reaches J2. Check whether the MCU
       drives the ST8R00 EN pin, which would switch the display power.
