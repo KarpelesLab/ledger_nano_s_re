@@ -32,7 +32,13 @@ models) BLE/NFC. This document describes the protocol as seen on the wire in the
 2. **PPS** negotiates the fast rate (`FF 10 98 77`, echoed by the SE).
 3. The MCU sends **`SESSION_START_EVENT`** (`0x01`): a kind byte (bit 1 = request BLE, bit 2 = recovery), a
    4-byte feature bitmap, and a length-prefixed version string. On MCU firmware it then adds more
-   length-prefixed fields (MCU bootloader version, key ids). The Nano S sends the version NUL-terminated.
+   length-prefixed fields, as `(version string, 4-byte key id)` pairs — one for the MCU bootloader, one for
+   the MCU app. The Nano S sends the version NUL-terminated.
+   - **Each key id is the last 4 bytes of that component's signing public key.** The MCU-app id reported by
+     the 1.12 firmware is `f1308974`, which equals the tail of the public key recovered from its signature
+     (`…a086f1308974`) — this is what pins the ECDSA recovery to one of its two candidates (see
+     [seproxyhal_capture.md](seproxyhal_capture.md)). The bootloader id `f4d8aa43` and the app id `f1308974`
+     are the *same* two ids the Nano X sends, so the Nano S and Nano X MCUs share both signing keys.
    - Feature bits seen: `USB` (`0x01`), `SCREEN_SML` (`0x200`), 2 buttons (`0x2<<4`), and from 1.6 on
      `MCU secure instruction set` (`0x10000000`). Other defined bits: `BLE` `0x02`, `TOUCH` `0x04`,
      `BATTERY` `0x08`, `SCREEN_BIG` `0x100`, `LEDRGB` `0x1000`, `MCU bootloader` `0x20000000`.

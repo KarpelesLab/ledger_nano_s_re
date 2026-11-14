@@ -188,15 +188,24 @@ That boot reports **SEPROXYHAL version 1.12, MCU bootloader 0.11**, and the host
 
 - **Same read path as device 1:** boot 32 uses `UNSEC_CHUNK_READ_EXT`, signed length 0x7fb8, and the image
   reads cleanly (0x0000–0x7fff, no conflicts). SHA-256 `6da013f8f3c2376b040112af6d75d13c2e108eda8c4121412ba081188f68bd8f`.
-- **A third signing key.** The signature is at 0x7fb8, 71 bytes DER (the 1.6 one was 70), followed by a
-  single `ff`. On secp256k1 over SHA-256 of 0x0000–0x7fb7 it recovers to
+- **A third signing key — and we know which candidate.** The signature is at 0x7fb8, 71 bytes DER (the 1.6
+  one was 70), followed by a single `ff`. On secp256k1 over SHA-256 of 0x0000–0x7fb7 it recovers to
 
   ```
   04 c44aa5822fb392069bd2aeb79898d7b263d7e8fbc4b37e21a4ca5b23d3d2c772
      1451c3eb3ee4b7a448847f1640e129d0302da06ee2edc9c8c354afa997080a6b
   04 d1152ea5fa739fd71d4812d65dfa6fbf9ac31321f368839d42d2209606493d12
-     822bd3b885bf7058d19a34c51381335e6150d998312a3b35fd37a086f1308974
+     822bd3b885bf7058d19a34c51381335e6150d998312a3b35fd37a086f1308974   ← the real one
   ```
+
+  Recovery always yields two candidates, but the SESSION_START event names the key: on 1.12 the MCU reports
+  its app key id as **`f1308974`**, which is exactly the last 4 bytes of the second candidate above
+  (`…a086f1308974`). So the second candidate is the actual 1.12 MCU-app signing public key. The SESSION_START
+  also carries the bootloader key id **`f4d8aa43`**. Both ids are the *same ones the Nano X sends* (its
+  SESSION_START blob `…04f4d8aa4304312e313604f1308974…` pairs bootloader "2.28"→`f4d8aa43` and app
+  "1.16"→`f1308974`): the Nano S 1.12 and Nano X MCUs share their bootloader and app signing keys. The
+  key id being the pubkey tail also confirms these ids (long treated as opaque in the Nano X capture) are
+  simply truncated signing public keys.
 
 ### The three versions, their signatures
 
@@ -204,7 +213,7 @@ That boot reports **SEPROXYHAL version 1.12, MCU bootloader 0.11**, and the host
 |---|---|---|---|---|---|
 | MCU 1.0 | 1.3.1 | 0x7fb0 | 70 bytes | `46 46` ("FF") then `ff…` | **Ledger root of trust** (public releases) |
 | MCU 1.6 | (cap. 1) | 0x7fb8 | 70 bytes | `ff ff` | other Ledger key (unknown) |
-| MCU 1.12 | 1.6.0 | 0x7fb8 | 71 bytes | `ff` | other Ledger key (unknown) |
+| MCU 1.12 | 1.6.0 | 0x7fb8 | 71 bytes | `ff` | Ledger MCU-app key, id `f1308974` (= Nano X app key) |
 
 ## Match against the official release images
 
@@ -237,9 +246,12 @@ of what was signed but is not distributed.
 
 - **Devices 1 and 6 use a different key.** The MCU 1.6 and MCU 1.12 signatures do **not** verify under the
   root-of-trust key, and they share no recovered key with each other. So these units are signed with other
-  Ledger key(s), and MCU 1.6 and 1.12 appear to use different keys again — consistent with a key change around
-  the 1.4 rework of MCU authentication. Those public key(s) are still unknown: pinning one down needs two
-  full-flash captures of the *same* MCU version, or Ledger publishing the key.
+  Ledger key(s), and MCU 1.6 and 1.12 use different keys again — consistent with a key change around
+  the 1.4 rework of MCU authentication. The **1.12 key is now known**: the SESSION_START key id `f1308974`
+  pins it to the second recovery candidate above (`04 d1152ea5…a086f1308974`), the same MCU-app key the
+  Nano X uses. The **1.6 key** is still unresolved: its SESSION_START uses the older format (version string
+  only, no key-id fields), so there is no id to compare against its two recovery candidates. Pinning it down
+  needs two full-flash captures of the *same* MCU version, or Ledger publishing the key.
 
 - There are no release images in that repository for MCU 1.6 or 1.12 (it stops at 1.1).
 

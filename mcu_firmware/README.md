@@ -17,7 +17,7 @@ publishes some of these images as Intel hex in
 |---|---|---|---|---|---|
 | `mcu_nanos_1.0.bin` | MCU 1.0 | 0x7fb0 | 70-byte DER | **Ledger root of trust** | `f8d944ec…fed3624` |
 | `mcu_nanos_1.6.bin` | MCU 1.6 | 0x7fb8 | 70-byte DER | other Ledger key (unknown) | `2fa78beb…a479e46` |
-| `mcu_nanos_1.12.bin` | MCU 1.12 | 0x7fb8 | 71-byte DER | other Ledger key (unknown) | `6da013f8…f68bd8f` |
+| `mcu_nanos_1.12.bin` | MCU 1.12 | 0x7fb8 | 71-byte DER | Ledger MCU-app key, id `f1308974` (= Nano X) | `6da013f8…f68bd8f` |
 
 Layout of each image: `vector table | bootloader | gap (random fill) | seproxyhal app | ECDSA signature`.
 The flash from 0 to the signed length is covered by a secp256k1 ECDSA signature (over its SHA-256), stored in
@@ -39,5 +39,9 @@ is covered with no conflicting reads.
 - **`mcu_nanos_1.6.bin`** and **`mcu_nanos_1.12.bin`** are from production units (SE 1.6.0 for 1.12). Ledger has
   not published release images for these versions. Note `mcu_nanos_1.6.bin` is a *different build* from the
   `mcu_1.6_over_0.8.hex` floating around (different bootloader, different signature).
+- **`mcu_nanos_1.12.bin`'s signing key is identified:** its SESSION_START reports the MCU-app key id
+  `f1308974`, which is the last 4 bytes of the second key recovered from its signature
+  (`04 d1152ea5…a086f1308974`) — the same MCU-app key the Ledger Nano X uses. See
+  [../docs/seproxyhal_capture.md](../docs/seproxyhal_capture.md).
 
 `SHA256SUMS` lists the hashes; `sha256sum -c SHA256SUMS` checks them.
