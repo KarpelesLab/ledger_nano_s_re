@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nano S board 3D</title>
+<style>
+  :root { --panel: rgba(18, 20, 24, .86); --text: #e8e8e8; --muted: #a0a4ab; --accent: #ffd43b; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #15171b; color: var(--text); font: 13px/1.4 system-ui, sans-serif; }
+  #view { position: fixed; inset: 0; }
+  #view canvas { display: block; touch-action: none; }
+  #panel { position: fixed; top: max(8px, env(safe-area-inset-top)); left: max(8px, env(safe-area-inset-left)); padding: 8px 10px;
+           background: var(--panel); border-radius: 6px; max-width: min(320px, calc(100vw - 16px));
+           max-height: calc(100dvh - 16px); overflow-y: auto; box-sizing: border-box; touch-action: manipulation; }
+  #panel summary { cursor: pointer; font-weight: bold; font-size: 14px; }
+  #panel[open] summary { margin-bottom: 4px; }
+  #panel label { display: flex; gap: 6px; align-items: center; padding: 2px 0; cursor: pointer; }
+  #panel .buttons { display: flex; gap: 6px; margin: 6px 0 2px; flex-wrap: wrap; }
+  #panel button { font: inherit; cursor: pointer; }
+  #panel .hint { color: var(--muted); font-size: 12px; margin-top: 4px; }
+  #tip { position: fixed; pointer-events: none; max-width: 380px; padding: 6px 10px; background: var(--panel);
+         border: 1px solid #444; border-radius: 6px; font-size: 12px; }
+  #tip b { font-size: 13px; color: var(--accent); }
+  #tip .meta { color: var(--muted); }
+  #tip p { margin: 3px 0 0; }
+  #tip ul { margin: 3px 0 0; padding-left: 16px; columns: 2; column-gap: 14px; }
+  #tip ul.one { columns: 1; }
+  #tip li { break-inside: avoid; }
+  /* touch screens: bigger controls, and details in a sheet along the bottom instead of next to the finger */
+  @media (pointer: coarse) {
+    #panel { font-size: 15px; }
+    #panel label { padding: 5px 0; }
+    #panel input[type=checkbox] { width: 20px; height: 20px; }
+    #panel button { font-size: 16px; padding: 6px 12px; }
+    #tip { left: max(8px, env(safe-area-inset-left)) !important; right: max(8px, env(safe-area-inset-right));
+           top: auto !important; bottom: max(8px, env(safe-area-inset-bottom)); max-width: none;
+           max-height: 40dvh; overflow-y: auto; pointer-events: auto; font-size: 14px; }
+    #tip b { font-size: 15px; }
+  }
+  #loading { position: fixed; inset: 0; display: grid; place-items: center; color: var(--muted); }
+</style>
+</head>
+<body>
+<div id="view"></div>
+<div id="loading">Loading…</div>
+<details id="panel" open>
+  <summary>Nano S main board, reconstructed</summary>
+  <label><input type="checkbox" id="opt-parts" checked> Components</label>
+  <label><input type="checkbox" id="opt-photo"> Photos on the board</label>
+  <label><input type="checkbox" id="opt-pours" checked> Ground pours</label>
+  <label><input type="checkbox" id="opt-tracks" checked> Tracks and vias</label>
+  <label><input type="checkbox" id="opt-silk" checked> Silkscreen</label>
+  <div class="buttons">
+    <button id="top">Top</button><button id="bottom">Bottom</button><button id="angle">Angle</button>
+  </div>
+  <div class="hint" id="help">Drag to rotate, right-drag to pan, scroll to zoom. Hover a part, pad, track or via for
+    details; nets light up on both sides. With the photos on, the copper is hidden but still lights up on hover.</div>
+</details>
+<div id="tip" hidden></div>
+<script src="scene.js"></script>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const S = window.SCENE;
+const T = S.thickness, top = T / 2;
+const $ = id => document.getElementById(id);
+
+// ---- renderer, camera, lights ----
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+$('view').append(renderer.domElement);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#15171b');
+const camera = new THREE.PerspectiveCamera(35, innerWidth / innerHeight, .05, 1000);
+camera.up.set(0, 0, 1);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+scene.add(new THREE.HemisphereLight('#ffffff', '#444444', 1.2));
+const sun = new THREE.DirectionalLight('#ffffff', 1.6);
+sun.position.set(-30, -40, 80);
+scene.add(sun);
+const under = new THREE.DirectionalLight('#ffffff', .9);
+under.position.set(30, 40, -80);
+scene.add(under);
+
+const xs = S.outline.map(p => p[0]), ys = S.outline.map(p => p[1]);
+const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
+const boardW = maxX - minX, boardH = maxY - minY;
+const root = new THREE.Group();
+root.position.set(-(minX + maxX) / 2, -(minY + maxY) / 2, 0);
+scene.add(root);
+
+// ---- materials ----
+const mat = c => new THREE.MeshStandardMaterial({ color: c, roughness: .55, metalness: .1, side: THREE.DoubleSide });
+// copper under blue solder mask, as on the real board
+const M = {
+  board: new THREE.MeshStandardMaterial({ color: '#0d2f6e', roughness: .7 }),
+  pour: mat('#1d4f9e'), track: mat('#2a63b8'),
+  pad: new THREE.MeshStandardMaterial({ color: '#cfd2d6', roughness: .3, metalness: .8, side: THREE.DoubleSide }),
+  via: new THREE.MeshStandardMaterial({ color: '#bfc3c8', roughness: .35, metalness: .7 }),
+  silk: new THREE.MeshBasicMaterial({ color: '#f2f2ee', side: THREE.DoubleSide }),
+  hi: new THREE.MeshStandardMaterial({ color: '#ffd43b', emissive: '#7a5a00', roughness: .4, side: THREE.DoubleSide }),
+};
+
+// pickable meshes, and lookups to highlight a whole net or part
+const pickable = [], byNet = new Map(), byRef = new Map();
+function register(mesh, info) {
+  mesh.userData = info;
+  mesh.userData.base = mesh.material;
+  pickable.push(mesh);
+  if (info.net) (byNet.get(info.net) || byNet.set(info.net, []).get(info.net)).push(mesh);
+  if (info.ref) (byRef.get(info.ref) || byRef.set(info.ref, []).get(info.ref)).push(mesh);
+}
+const groups = { pours: new THREE.Group(), tracks: new THREE.Group(), parts: new THREE.Group(), silk: new THREE.Group(),
+                 pads: new THREE.Group(), photo: new THREE.Group() };
+Object.values(groups).forEach(g => root.add(g));
+const zOf = (side, lift) => side === 'front' ? top + lift : -top - lift;
+
+// ---- board ----
+const shapeOf = pts => new THREE.Shape(pts.map(([x, y]) => new THREE.Vector2(x, y)));
+{
+  const g = new THREE.ExtrudeGeometry(shapeOf(S.outline), { depth: T, bevelEnabled: false });
+  const m = new THREE.Mesh(g, M.board);
+  m.position.z = -top;
+  root.add(m);
+}
+
+// ---- photos, laid on both faces (the back photo is already mirrored to the front view, as KiCad shows it) ----
+for (const side of ['front', 'back']) {
+  if (!S.photos?.[side]) continue;
+  const g = new THREE.ShapeGeometry(shapeOf(S.outline));
+  const pos = g.attributes.position, uv = g.attributes.uv;
+  for (let i = 0; i < pos.count; i++) uv.setXY(i, (pos.getX(i) - minX) / boardW, (pos.getY(i) - minY) / boardH);
+  const tex = new THREE.TextureLoader().load(S.photos[side]);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ map: tex, roughness: .6, side: side === 'front' ? THREE.FrontSide : THREE.BackSide }));
+  m.position.z = zOf(side, .002);
+  groups.photo.add(m);
+}
+groups.photo.visible = false;
+
+// ---- copper ----
+for (const f of S.fills) {
+  const sh = shapeOf(f.rings[0]);
+  for (const h of f.rings.slice(1)) sh.holes.push(new THREE.Path(h.map(([x, y]) => new THREE.Vector2(x, y))));
+  const m = new THREE.Mesh(new THREE.ShapeGeometry(sh), M.pour);
+  m.position.z = zOf(f.side, .004);
+  groups.pours.add(m);
+  register(m, { kind: 'pour', net: f.net, side: f.side });
+}
+// a track segment with round ends, as KiCad draws it, so segments meet cleanly at each bend
+function stadium(len, w) {
+  const r = w / 2, h = len / 2, sh = new THREE.Shape();
+  sh.moveTo(-h, -r);
+  sh.lineTo(h, -r);
+  sh.absarc(h, 0, r, -Math.PI / 2, Math.PI / 2, false);
+  sh.lineTo(-h, r);
+  sh.absarc(-h, 0, r, Math.PI / 2, Math.PI * 3 / 2, false);
+  return new THREE.ShapeGeometry(sh, 6);
+}
+for (const t of S.tracks) {
+  const [ax, ay] = t.a, [bx, by] = t.b, len = Math.hypot(bx - ax, by - ay);
+  const m = new THREE.Mesh(stadium(len, t.w), M.track);
+  m.position.set((ax + bx) / 2, (ay + by) / 2, zOf(t.side, .008));
+  m.rotation.z = Math.atan2(by - ay, bx - ax);
+  groups.tracks.add(m);
+  register(m, { kind: 'track', net: t.net, side: t.side });
+}
+for (const v of S.vias) {
+  const g = new THREE.CylinderGeometry(v.d / 2, v.d / 2, T + .03, 16);
+  g.rotateX(Math.PI / 2);
+  const m = new THREE.Mesh(g, M.via);
+  m.position.set(v.at[0], v.at[1], 0);
+  groups.tracks.add(m);
+  register(m, { kind: 'via', net: v.net });
+}
+for (const p of S.pads) {
+  // through-hole pads show on both faces
+  for (const side of p.both ? ['front', 'back'] : [p.side]) {
+    const g = p.shape === 'circle' ? new THREE.CircleGeometry(p.w / 2, 24)
+      : p.shape === 'oval' ? stadium(Math.max(p.w, p.h) - Math.min(p.w, p.h), Math.min(p.w, p.h))
+      : new THREE.PlaneGeometry(p.w, p.h);
+    const m = new THREE.Mesh(g, M.pad);
+    m.position.set(p.at[0], p.at[1], zOf(side, .012));
+    // KiCad pad angles turn counter-clockwise in its y-down view, so the same way here with y up
+    m.rotation.z = p.rot * Math.PI / 180 + (p.shape === 'oval' && p.h > p.w ? Math.PI / 2 : 0);
+    groups.pads.add(m);
+    register(m, { kind: 'pad', net: p.net, ref: p.ref, num: p.num, pin: p.pin, testpad: p.testpad, side });
+  }
+}
+
+// ---- silkscreen ----
+for (const s of S.silk) {
+  const sh = shapeOf(s.rings[0]);
+  for (const h of s.rings.slice(1)) sh.holes.push(new THREE.Path(h.map(([x, y]) => new THREE.Vector2(x, y))));
+  const m = new THREE.Mesh(new THREE.ShapeGeometry(sh), M.silk);
+  m.position.z = zOf(s.side, .010);
+  groups.silk.add(m);
+}
+
+// ---- parts: the meshes of their KiCad 3D models, one per colour, positions quantised over the part's box ----
+function decodeMesh(part, m) {
+  const bytes = Uint8Array.from(atob(m.v), c => c.charCodeAt(0));
+  const q = new Uint16Array(bytes.buffer), p = new Float32Array(q.length);
+  const { lo, hi } = part.mesh;
+  for (let i = 0; i < q.length; i++) { const k = i % 3; p[i] = lo[k] + q[i] / 65535 * (hi[k] - lo[k]); }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(p, 3));
+  g.computeVertexNormals();
+  return g;
+}
+function markingTexture(text, wPx, hPx) {
+  const c = document.createElement('canvas');
+  c.width = wPx; c.height = hPx;
+  const g = c.getContext('2d');
+  const lines = text.split('\n');
+  let size = hPx / (lines.length * 1.25);
+  g.font = `bold ${size}px DejaVu Sans Mono, monospace`;
+  const widest = Math.max(...lines.map(l => g.measureText(l).width));
+  if (widest > wPx * .9) { size *= wPx * .9 / widest; g.font = `bold ${size}px DejaVu Sans Mono, monospace`; }
+  g.fillStyle = '#d8d6cc';
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  lines.forEach((l, i) => g.fillText(l, wPx / 2, hPx / 2 + (i - (lines.length - 1) / 2) * size * 1.2));
+  const tex = new THREE.CanvasTexture(c);
+  tex.anisotropy = 8;
+  return tex;
+}
+// metal finishes for the light grey and gold colours of the models
+const partMat = c => {
+  const col = new THREE.Color(c), hsl = {};
+  col.getHSL(hsl);
+  const metal = hsl.l > .55 && hsl.s < .25 || (hsl.h > .1 && hsl.h < .17 && hsl.s > .4);
+  return new THREE.MeshStandardMaterial({ color: col, roughness: metal ? .3 : .6, metalness: metal ? .75 : .05, side: THREE.DoubleSide });
+};
+for (const p of S.parts) {
+  if (!p.mesh) continue;
+  const body = new THREE.Group();
+  for (const m of p.mesh.meshes) {
+    const mesh = new THREE.Mesh(decodeMesh(p, m), partMat(m.color));
+    body.add(mesh);
+    register(mesh, { kind: 'part', ref: p.ref, part: p });
+  }
+  if (p.marking) {
+    // text on top of the package: mark_box is the text area [width, height, angle in degrees]
+    const [w, h, a] = p.mark_box, hi = p.mesh.hi;
+    const plane = new THREE.Mesh(new THREE.PlaneGeometry(w, h),
+      new THREE.MeshBasicMaterial({ map: markingTexture(p.marking, 512, Math.round(512 * h / w)), transparent: true }));
+    plane.rotation.z = a * Math.PI / 180;
+    plane.position.set(p.at[0], p.at[1], hi[2] + .003);
+    body.add(plane);
+  }
+  groups.parts.add(body);
+}
+
+// ---- camera views ----
+function view(name) {
+  // fit the board's length (or its width on a tall screen) with a little room around it
+  const portrait = camera.aspect < 1;
+  const halfFov = THREE.MathUtils.degToRad(camera.fov / 2);
+  const span = portrait ? boardW / camera.aspect * .75 : Math.max(boardW / camera.aspect, boardH * 1.6) * .85;
+  const d = span / Math.tan(halfFov);
+  controls.target.set(0, 0, 0);
+  if (name === 'top') camera.position.set(portrait ? -0.001 : 0, portrait ? 0 : -0.001, d);
+  else if (name === 'bottom') camera.position.set(portrait ? 0.001 : 0, portrait ? 0 : 0.001, -d);
+  else if (portrait) camera.position.set(-d * .8, d * .2, d * .65);
+  else camera.position.set(-d * .18, -d * .7, d * .62);
+  if (portrait && name !== 'angle') camera.up.set(1, 0, 0); else camera.up.set(0, 0, 1);
+  controls.update();
+  camera.up.set(0, 0, 1);
+}
+view('angle');
+$('top').onclick = () => view('top');
+$('bottom').onclick = () => view('bottom');
+$('angle').onclick = () => view('angle');
+$('opt-parts').onchange = e => groups.parts.visible = e.target.checked;
+$('opt-pours').onchange = e => groups.pours.visible = e.target.checked;
+$('opt-tracks').onchange = e => groups.tracks.visible = e.target.checked;
+$('opt-silk').onchange = e => groups.silk.visible = e.target.checked && !$('opt-photo').checked;
+// with the photos on, the reconstructed copper and silkscreen turn invisible but stay pickable, so hovering
+// a trace on the photo still lights up its net
+const ghost = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide });
+$('opt-photo').onchange = e => {
+  const on = e.target.checked;
+  groups.photo.visible = on;
+  groups.silk.visible = !on && $('opt-silk').checked;
+  for (const m of pickable) {
+    if (m.userData.kind === 'part') continue;
+    if (!m.userData.solid) m.userData.solid = m.userData.base;
+    m.userData.base = on ? ghost : m.userData.solid;
+    if (!lit.includes(m)) m.material = m.userData.base;
+  }
+};
+
+// ---- hover ----
+const ray = new THREE.Raycaster(), mouse = new THREE.Vector2();
+let lit = [];
+function light(meshes) {
+  for (const m of lit) m.material = m.userData.base;
+  lit = meshes;
+  for (const m of lit) m.material = M.hi;
+}
+const esc = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
+const padLabel = p => `${p.ref}.${p.num}${p.pin ? ' ' + p.pin : ''}`;
+function netHtml(net) {
+  const ps = [...new Set(S.pads.filter(p => p.net === net).map(padLabel))];
+  return (S.nets[net] ? `<p>${esc(S.nets[net])}</p>` : '') +
+    (ps.length ? `<p class="meta">${ps.length} pad${ps.length > 1 ? 's' : ''}: ${esc(ps.slice(0, 30).join(', '))}${ps.length > 30 ? '…' : ''}</p>` : '');
+}
+function describe(u) {
+  if (u.kind === 'part') {
+    const p = u.part, pads = S.pads.filter(q => q.ref === p.ref);
+    const title = p.title || p.value;
+    return `<b>${esc(p.ref)}</b> ${esc(title)} <span class="meta">${p.package ? esc(p.package) + ' · ' : ''}${p.side}</span>` +
+      (p.notes ? `<p>${esc(p.notes)}</p>` : '') +
+      (pads.length ? `<ul class="${pads.length <= 6 ? 'one' : ''}">${pads.map(q =>
+        `<li>${esc(q.num)}${q.pin ? ' <span class="meta">' + esc(q.pin) + '</span>' : ''}: ${esc(q.net || 'not connected')}</li>`).join('')}</ul>` : '');
+  }
+  if (u.kind === 'pad') {
+    const head = `${u.ref} pad ${u.num}${u.pin ? ' · ' + u.pin : ''}`;
+    const tp = u.testpad ? `<p>${esc(u.testpad)}</p>` : '';
+    if (!u.net) return `<b>${esc(head)}</b> <span class="meta">not connected · ${u.side}</span>` + tp;
+    return `<b>${esc(u.net)}</b> <span class="meta">${esc(head)} · ${u.side}</span>` + tp + netHtml(u.net);
+  }
+  if (!u.net) return `<b>${esc(u.kind)}</b> <span class="meta">no net</span>`;
+  return `<b>${esc(u.net)}</b> <span class="meta">${u.kind}${u.side ? ' · ' + u.side : ''}</span>` + netHtml(u.net);
+}
+function rank(m) {
+  return m.userData.kind === 'pour' ? 2 : 0;
+}
+function pick(x, y) {
+  mouse.set(x / innerWidth * 2 - 1, -y / innerHeight * 2 + 1);
+  camera.updateMatrixWorld();
+  ray.setFromCamera(mouse, camera);
+  // pours sit under everything else, so anything on top of them wins
+  return ray.intersectObjects(pickable.filter(m => m.parent.visible && m.visible), false)
+    .sort((a, b) => rank(a.object) - rank(b.object) || a.distance - b.distance)[0];
+}
+function inspect(x, y) {
+  const hit = pick(x, y), tip = $('tip');
+  if (!hit) { light([]); tip.hidden = true; return; }
+  const u = hit.object.userData;
+  light(u.kind === 'part' ? byRef.get(u.ref).filter(m => m.userData.kind === 'part')
+    : u.net && u.net !== 'GND' ? byNet.get(u.net) : [hit.object]);
+  tip.innerHTML = describe(u);
+  tip.hidden = false;
+  tip.scrollTop = 0;
+  // next to the pointer; on touch screens the stylesheet docks it along the bottom instead
+  tip.style.left = Math.min(x + 14, innerWidth - tip.offsetWidth - 8) + 'px';
+  tip.style.top = Math.min(y + 14, innerHeight - tip.offsetHeight - 8) + 'px';
+}
+const el = renderer.domElement;
+el.addEventListener('pointermove', e => { if (e.pointerType === 'mouse') inspect(e.clientX, e.clientY); });
+el.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') { light([]); $('tip').hidden = true; } });
+// a tap (a touch that barely moves) shows what is under it; tapping empty space clears it
+let press = null;
+el.addEventListener('pointerdown', e => { if (e.pointerType !== 'mouse') press = e.isPrimary ? { x: e.clientX, y: e.clientY, t: performance.now() } : null; });
+el.addEventListener('pointerup', e => {
+  if (e.pointerType === 'mouse' || !press) return;
+  if (Math.hypot(e.clientX - press.x, e.clientY - press.y) < 10 && performance.now() - press.t < 500) inspect(e.clientX, e.clientY);
+  press = null;
+});
+el.addEventListener('pointercancel', () => { press = null; });
+
+if (matchMedia('(pointer: coarse)').matches) $('help').textContent = 'Drag to rotate, pinch to zoom, drag with two fingers ' +
+  'to pan. Tap a part, pad, track or via for details; nets light up on both sides.';
+// on a phone the panel would cover much of the board: start it folded
+if (innerWidth < 600) $('panel').open = false;
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+$('loading').remove();
+renderer.setAnimationLoop(() => { controls.update(); renderer.render(scene, camera); });
+window.__viewer = { camera, controls, view, pickable, groups };
+</script>
+</body>
+</html>

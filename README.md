@@ -48,6 +48,12 @@ a schematic with the nets known so far. Details and assumptions are in
 
 ![3D render](docs/img/render_iso.png)
 
+**Interactive 3D view:** open [`kicad/viewer3d.html`](kicad/viewer3d.html) (serve the `kicad/`
+folder over HTTP, e.g. `python3 -m http.server -d kicad`). Hover a part for what it is and the net on
+each pin, or a pad, track or via to light up its whole net on both sides. The board photos can be laid
+on both faces. Rebuild its data (`kicad/scene.js`, `kicad/photo_*.jpg`) after editing the board with
+`python3 tools/export_scene.py`.
+
 ## Bill of materials (as seen)
 
 | Ref | Marking | Package | Identification |
