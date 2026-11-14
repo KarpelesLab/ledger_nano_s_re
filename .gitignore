@@ -5,5 +5,7 @@ _autosave-*
 *.lck
 __pycache__/
 
-# MCU firmware images rebuilt from captures (Ledger's firmware, not to be published)
+# MCU firmware images rebuilt from captures are large/binary; keep stray ones out,
+# but the curated, documented set under mcu_firmware/ is committed (see mcu_firmware/README.md)
 *.bin
+!mcu_firmware/*.bin

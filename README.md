@@ -174,7 +174,9 @@ A logic analyzer capture of CLK, I/O and RST on a working Nano S is decoded in
   image. The captured **MCU 1.0 image is byte-for-byte Ledger's public
   `nanosr1` release**, signed under Ledger's documented root-of-trust key; MCU
   1.6 and 1.12 are signed with other (unknown) Ledger keys.
-  `tools/mcu_flash_from_seph.py` rebuilds the image from a capture.
+  `tools/mcu_flash_from_seph.py` rebuilds the image from a capture; the
+  reconstructed images (needed for interoperability with the SE) are in
+  [`mcu_firmware/`](mcu_firmware/).
 
 ## Back side / test access
 
