@@ -76,8 +76,33 @@ endian). Reads are mostly 240 bytes, in no particular order.
 - At 0x7fb8 the flash holds a DER ECDSA signature (`30 44 02 20 … 02 20 …`, 70 bytes) followed by `ff ff`.
   So 0x7fb8 is the end of the signed area: the SE most likely checks a signature over the MCU firmware at every boot.
 - The image starts with a Cortex-M0 vector table: initial SP 0x20001800 (top of the 6 KB of RAM), reset at
-  0x080000c1. Several vector slots hold random-looking words instead of handler addresses, and the flash also
-  holds long runs of hex digits, which look like filler.
+  0x080000c1.
+
+### Relation to Ledger's published MCU source
+
+Ledger published the MCU firmware source as
+[LedgerHQ/nanos-nonsecure-firmware](https://github.com/LedgerHQ/nanos-nonsecure-firmware). Its last commit
+is version 1.1, from August 2017. The captured image comes from the same codebase and build, but from a later
+version, so it is not byte-identical to anything that source builds:
+
+- **Same layout and build.** The source's comment gives the flash as `| vector | bootloader | [gap] |
+  seproxyhal | signature |`. Its Makefile merges the bootloader and the SEPROXYHAL firmware with `srec_cat`,
+  **fills the unused space with random bytes** (`-random-fill`), and signs the whole thing with
+  `signMCUhex.py`: secp256k1 ECDSA over the SHA-256 of the image, then the DER signature followed by `FF`
+  bytes. That matches the capture: the bytes from the end of the code (0x7804) to the signature look random,
+  and the signature at 0x7fb8 is followed by `ff ff` up to the end of the flash. The random fill also explains
+  the "hex digits" and other noise found elsewhere in the image.
+- **Same chunk protocol, extended.** In the source, the MCU answers the SE's chunk reads from `_signed`
+  (the start of flash) up to the end of the signature, and the first answer starts with the length of the
+  signed area as 4 bytes big endian. The capture's kind 4 read returns that same length (0x7fb8).
+- **Later version.** The source has only `UNSEC_CHUNK_READ` (0x32, sequential reads with a reset flag) and
+  sends version "1.1" with features USB, 2 buttons and small screen. The device sends version **"1.6"**
+  (the string is at 0x7800, at the end of its code), sets features bit `0x10000000` (MCU secure instruction
+  set), and the SE uses `UNSEC_CHUNK_READ_EXT` (0x33) with explicit offsets.
+- **Different signing key and address.** The published Makefile signs at 0x7fb0 with a placeholder key (it
+  decodes to "No, we don't put keys on github"). The device's signature is at 0x7fb8, made with Ledger's own key.
+- The published bootloader writes a magic value `0x51145E82` next to its boot address; it does not appear in
+  the captured image, so the deployed bootloader differs too.
 
 `tools/mcu_flash_from_seph.py` rebuilds the image from a `visgrok log`. The image of the captured device has
 SHA-256 `2fa78bebf0f38fadc3836bd47e695d33ed39bf66c1d02476ca9f43bb2a479e46`. It is Ledger's firmware and is
@@ -86,5 +111,5 @@ not published here.
 ## Open questions
 
 - Which curve and key the MCU firmware signature uses, and whether the SE refuses to start with a modified MCU image.
-- What the random-looking vector slots and the hex filler are for (padding the flash so there is no room for other code?).
+- Whether the random fill differs between devices (it is generated at build time, so probably not).
 - Button masks: visgrok reports the first presses as "left (mask 0x02)"; check against which switch (S1 on PB7, S2 on PA15) was pressed.
