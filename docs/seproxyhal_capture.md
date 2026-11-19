@@ -207,11 +207,12 @@ That boot reports **SEPROXYHAL version 1.12, MCU bootloader 0.11**, and the host
   key id being the pubkey tail also confirms these ids (long treated as opaque in the Nano X capture) are
   simply truncated signing public keys.
 
-### The three versions, their signatures
+### The captured versions, their signatures
 
 | Version | SE | Signed length | DER sig | Trailer | Signing key |
 |---|---|---|---|---|---|
 | MCU 1.0 | 1.3.1 | 0x7fb0 | 70 bytes | `46 46` ("FF") then `ff…` | **Ledger root of trust** (public releases) |
+| MCU 1.1 | (cap. 4) | 0x7fb0 | 71 bytes | `ff…` | **Ledger root of trust** (public releases) |
 | MCU 1.6 | (cap. 1) | 0x7fb8 | 70 bytes | `ff ff` | other Ledger key (unknown) |
 | MCU 1.12 | 1.6.0 | 0x7fb8 | 71 bytes | `ff` | Ledger MCU-app key, id `f1308974` (= Nano X app key) |
 
@@ -228,6 +229,20 @@ of what was signed but is not distributed.
   past the signature and outside the signed area, where the release hex has `46` ("FF") and the device has `ff`.
   Because an ECDSA signature is tied to one (key, message), identical signature bytes mean the device's full
   signed image (bootloader included) equals the release's, confirming the extraction against an official artifact.
+
+- **Device 3 (MCU 1.1) is the `nanosr11` release.** A later capture
+  (`capture-nanos-20261119-184616.vgk`, three boots of the same unit) reads an MCU 1.1 flash. Over the app
+  region 0x3000–0x7ff7 — all the code **and the 71-byte signature at 0x7fb0** — it is byte-for-byte identical to
+  `nanosr11`; only the seven fill bytes at 0x7ff8–0x7ffe differ (release `46`, device `ff`), outside the signed
+  area. Its signature **verifies under the root-of-trust key** over `SHA-256(flash[0:0x7fb0])`. All three boots
+  agree byte-for-byte. The only gap is the first 0x2d0 bytes, lost in the mangled SESSION_START window (these
+  captures never set the chunk-read reset flag, so the reconstruction is anchored by aligning the chunk stream
+  to the release — stream byte 0 = flash 0x2d0 — not by the usual offset bookkeeping).
+
+- **1.0 and 1.1 ship the same bootloader — now confirmed by direct capture.** The 1.1 capture's bootloader
+  region 0x2d0–0x3000 is byte-for-byte identical to device 2's (MCU 1.0). That earlier the root-of-trust key
+  recovery had to *graft* device 2's bootloader under the `nanosr11` app; the direct 1.1 capture now shows that
+  graft was exact over the region we can see.
 
 - **The signed message and curve are confirmed.** Grafting device 2's bootloader (0x0000–0x3000) under the
   `nanosr11` app and recovering keys from both releases on secp256k1, over `SHA-256(flash[0:signed_len])` of

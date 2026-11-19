@@ -16,6 +16,7 @@ publishes some of these images as Intel hex in
 | File | Version | Signed length | Signature | Signing key | SHA-256 |
 |---|---|---|---|---|---|
 | `mcu_nanos_1.0.bin` | MCU 1.0 | 0x7fb0 | 70-byte DER | **Ledger root of trust** | `f8d944ec…fed3624` |
+| `mcu_nanos_1.1.bin` | MCU 1.1 | 0x7fb0 | 71-byte DER | **Ledger root of trust** | `f0a372c5…1af3207` |
 | `mcu_nanos_1.6.bin` | MCU 1.6 | 0x7fb8 | 70-byte DER | other Ledger key (unknown) | `2fa78beb…a479e46` |
 | `mcu_nanos_1.12.bin` | MCU 1.12 | 0x7fb8 | 71-byte DER | Ledger MCU-app key, id `f1308974` (= Nano X) | `6da013f8…f68bd8f` |
 
@@ -36,6 +37,13 @@ is covered with no conflicting reads.
   verifies under Ledger's documented root-of-trust key
   `0490f5c9d15a0134bb019d2afd0bf297149738459706e7ac5be4abc350a1f818057224fce12ec9a65de18ec34d6e8c24db927835ea1692b14c32e9836a75dad609`.
   This match confirms the extraction method against an official artifact.
+- **`mcu_nanos_1.1.bin`** is **byte-for-byte identical to Ledger's public `nanosr11` release** over the app
+  and signature (0x3000–0x7ff7; only the 7 fill bytes at 0x7ff8–0x7ffe differ, past the signature). Its
+  signature (71-byte DER at 0x7fb0) **verifies under the same root-of-trust key** over `SHA-256(flash[0:0x7fb0])`.
+  Its bootloader region (0x2d0–0x3000) is byte-for-byte identical to `mcu_nanos_1.0.bin`, so 1.0 and 1.1 ship
+  the same bootloader. One caveat: the capture lost the first 0x2d0 bytes (they fell in the mangled
+  SESSION_START window), so bytes 0x0–0x2d0 here are carried over from the identical 1.0 bootloader; everything
+  from 0x2d0 on is captured, and all three boots in the capture agree over it byte-for-byte.
 - **`mcu_nanos_1.6.bin`** and **`mcu_nanos_1.12.bin`** are from production units (SE 1.6.0 for 1.12). Ledger has
   not published release images for these versions. Note `mcu_nanos_1.6.bin` is a *different build* from the
   `mcu_1.6_over_0.8.hex` floating around (different bootloader, different signature).

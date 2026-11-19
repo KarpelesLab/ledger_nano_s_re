@@ -171,9 +171,11 @@ A logic analyzer capture of CLK, I/O and RST on a working Nano S is decoded in
   enumeration itself. USB only comes up after the PIN is entered.
 - At every boot the SE first **reads the MCU's whole 32 KB flash** over the
   link; the flash ends with a secp256k1 ECDSA signature over SHA-256 of the
-  image. The captured **MCU 1.0 image is byte-for-byte Ledger's public
-  `nanosr1` release**, signed under Ledger's documented root-of-trust key; MCU
-  1.6 and 1.12 are signed with other (unknown) Ledger keys.
+  image. The captured **MCU 1.0 and 1.1 images are byte-for-byte Ledger's
+  public `nanosr1`/`nanosr11` releases**, both signed under Ledger's documented
+  root-of-trust key (1.0 and 1.1 share the same bootloader); MCU 1.6 and 1.12
+  are signed with other Ledger keys (1.12's is the same MCU-app key the Nano X
+  uses, id `f1308974`; 1.6's is still unidentified).
   `tools/mcu_flash_from_seph.py` rebuilds the image from a capture; the
   reconstructed images (needed for interoperability with the SE) are in
   [`mcu_firmware/`](mcu_firmware/).
