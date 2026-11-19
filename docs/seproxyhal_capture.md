@@ -303,9 +303,10 @@ of what was signed but is not distributed.
 ## Loadable container format
 
 Beyond the full-flash captures, a set of MCU firmware was dumped in Ledger's **loadable/update container** form
-(the `mcu_nanos_*` app loadables and `bootloader_nanos_*` bootloader loadables in [`mcu_firmware/`](../mcu_firmware/)).
-These are not flat flash images; decoding the container let the remaining versions be reconstructed and their
-signatures verified. What the dumps showed:
+(app loadables and bootloader loadables). These are not flat flash images; decoding the container let the
+remaining versions be reconstructed and their signatures verified, and the decoded results are what is committed
+in [`mcu_firmware/`](../mcu_firmware/) — `mcu_nanos_1.4/1.5/1.7/1.11.bin` as full 32 KB images and
+`bootloader_nanos_*.bin` as the raw installed bootloader bytes. What the dumps showed:
 
 - **Flash layout.** The MCU bootloader occupies **flash 0x0000–0x3000** up to bootloader 0.9, and grows to
   **0x0000–0x3800** from bootloader 0.11 on; the seproxyhal app follows (0x3000 or 0x3800) to 0x8000. The app's
@@ -322,13 +323,14 @@ signatures verified. What the dumps showed:
     installed bootloader at offset **0xe3c** (`[0xe3c : 0xe3c+0x3800] = flash[0x0:0x3800]`); the app loadable is
     the app region `flash[0x3800:0x7fb8]` followed by the signature.
 
-- **Verification anchors.** `bootloader_nanos_0.7.bin[0xa38:]` reproduces the bootloader of the verified full
-  `mcu_nanos_1.6.bin` (0x0–0x3000) exactly, and `bootloader_nanos_0.11.bin[0xe3c:]` reproduces that of
-  `mcu_nanos_1.12.bin` (0x0–0x3800) exactly — fixing the header offsets. Reassembling
-  `bootloader + app loadable` for 1.4, 1.5, 1.7 and 1.11 and hashing `flash[0:0x7fb8]` yields signatures that
-  recover the keys in the table above (key A for 1.4/1.5, key B for 1.7/1.11), which both verifies the
-  reconstructions and identifies the keys. Those reassembled 32 KB images are the `mcu_nanos_1.4/1.5/1.7/1.11.bin`
-  files in [`mcu_firmware/`](../mcu_firmware/).
+- **Verification anchors.** The bootloader loadable's payload at those offsets (0xa38 for the `F00DBABE` form,
+  0xe3c for the later form) reproduces the bootloader of a verified full image exactly — the 0.7 payload equals
+  `mcu_nanos_1.6.bin[0:0x3000]` and the 0.11 payload equals `mcu_nanos_1.12.bin[0:0x3800]` — which fixes the
+  header offsets. Reassembling `bootloader + app loadable` for 1.4, 1.5, 1.7 and 1.11 and hashing
+  `flash[0:0x7fb8]` yields signatures that recover the keys in the table above (key A for 1.4/1.5, key B for
+  1.7/1.11), which both verifies the reconstructions and identifies the keys. The committed
+  `mcu_nanos_1.4/1.5/1.7/1.11.bin` are those reassembled 32 KB images, and `bootloader_nanos_*.bin` are the
+  extracted bootloader payloads (0.7 and 0.11 byte-identical to the regions above).
 
 ## Other MCU 1.6 images (jasonbhwong/Ledger)
 

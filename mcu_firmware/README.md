@@ -12,9 +12,9 @@ publishes some versions as Intel hex in
 
 - **`mcu_nanos_*.bin`** — complete 32 KB flash images (0x08000000–0x08007fff). The bytes the SE reads and
   verifies at every boot. **Every one's signature has been verified** (see below).
-- **`bootloader_nanos_*.bin`** — MCU bootloaders in Ledger's loadable/update container, as dumped. The
-  container format is decoded below; the installed bootloader bytes they carry are what sit at the bottom of
-  the matching full images.
+- **`bootloader_nanos_*.bin`** — the raw installed MCU bootloader (flash from 0x0), i.e. the bytes at the
+  bottom of the matching full images. Extracted from Ledger's loadable/update container (format decoded in the
+  capture notes).
 
 ## Full-flash images
 
@@ -45,21 +45,22 @@ The bootloader occupies **flash 0x0–0x3000** up to bootloader 0.9, then **0x0�
 0x800; the app start moves with it). 1.0 and 1.1 share one (older) bootloader; 1.4/1.5 use 0.6, 1.6 uses 0.7,
 1.7 uses 0.9, and 1.11/1.12 use 0.11.
 
-## Bootloader loadables
+## Bootloaders
 
-`bootloader_nanos_{0.6,0.7,0.9,0.11}.bin` are Ledger's loadable/update containers for the MCU bootloader,
-dumped directly. They are **not** flat flash images; the installed bootloader bytes are a slice inside them:
+`bootloader_nanos_{0.6,0.7,0.9,0.11}.bin` are the **raw installed bootloader** (flash starting at 0x0) — what
+sits below the app in the matching full image — extracted from the dumped loadable container.
 
-| File | Container | Header | Installed bootloader = bytes | = region in full image |
-|---|---|---|---|---|
-| `bootloader_nanos_0.6.bin` | `F00DBABE` | 0xa38 | `[0xa38 : 0xa38+0x3000]` | flash 0x0–0x3000 |
-| `bootloader_nanos_0.7.bin` | `F00DBABE` | 0xa38 | `[0xa38 : 0xa38+0x3000]` | **= `mcu_nanos_1.6.bin[0:0x3000]`** |
-| `bootloader_nanos_0.9.bin` | `F00DBABE` | 0xa38 | `[0xa38 : 0xa38+0x3000]` | flash 0x0–0x3000 |
-| `bootloader_nanos_0.11.bin` | other | 0xe3c | `[0xe3c : 0xe3c+0x3800]` | **= `mcu_nanos_1.12.bin[0:0x3800]`** |
+| File | Version | Used by | Flash region | Bytes | SHA-256 |
+|---|---|---|---|---|---|
+| `bootloader_nanos_0.6.bin` | 0.6 | MCU 1.4, 1.5 | 0x0–0x3000 | 12288 | `5ab746f5…` |
+| `bootloader_nanos_0.7.bin` | 0.7 | MCU 1.6 | 0x0–0x3000 | 12288 | `d65aadfc…` (= `mcu_nanos_1.6.bin[0:0x3000]`) |
+| `bootloader_nanos_0.9.bin` | 0.9 | MCU 1.7 | 0x0–0x3000 | 12288 | `01ba05a1…` |
+| `bootloader_nanos_0.11.bin` | 0.11 | MCU 1.11, 1.12 | 0x0–0x3800 | 14336 | `938c30e9…` (= `mcu_nanos_1.12.bin[0:0x3800]`) |
 
-See [the capture notes](../docs/seproxyhal_capture.md#loadable-container-format) for how the container was
-decoded and how the full images above were reconstructed and verified from these bootloaders plus the app
-loadables.
+The bootloader region grows from 0x3000 to 0x3800 at version 0.11. See
+[the capture notes](../docs/seproxyhal_capture.md#loadable-container-format) for how the loadable container was
+decoded (header offsets etc.) and how the full images were reconstructed and verified from these bootloaders
+plus the app loadables.
 
 ## Provenance
 
@@ -78,7 +79,8 @@ base, under the matching bootloader loadable) and each **verified** by its signa
 - **`mcu_nanos_1.7/1.11/1.12.bin`** verify under **key B** (`f1308974`). 1.12's key was already known from its
   SESSION_START (app key id `f1308974`); 1.7 and 1.11 recover the same key (with bootloaders 0.9 and 0.11),
   confirming the key change happened between 1.6 and 1.7. Key B is the MCU-app key the Nano X also uses.
-- **`bootloader_nanos_0.7.bin`** and **`bootloader_nanos_0.11.bin`** are confirmed exact: their installed
-  regions equal the bootloader of `mcu_nanos_1.6.bin` and `mcu_nanos_1.12.bin` respectively, byte-for-byte.
+- **`bootloader_nanos_0.7.bin`** and **`bootloader_nanos_0.11.bin`** are confirmed exact: they equal the
+  bootloader region of `mcu_nanos_1.6.bin` (0x0–0x3000) and `mcu_nanos_1.12.bin` (0x0–0x3800) respectively,
+  byte-for-byte. The 0.6 and 0.9 bootloaders are confirmed by the signatures they verify (1.4/1.5 and 1.7).
 
 `SHA256SUMS` lists the hashes; `sha256sum -c SHA256SUMS` checks them.
