@@ -201,7 +201,11 @@ That boot reports **SEPROXYHAL version 1.12, MCU bootloader 0.11**, and the host
   Recovery always yields two candidates, but the SESSION_START event names the key: on 1.12 the MCU reports
   its app key id as **`f1308974`**, which is exactly the last 4 bytes of the second candidate above
   (`…a086f1308974`). So the second candidate is the actual 1.12 MCU-app signing public key. The SESSION_START
-  also carries the bootloader key id **`f4d8aa43`**. Both ids are the *same ones the Nano X sends* (its
+  also carries the bootloader key id **`f4d8aa43`**. These ids are now **directly observed on the Nano S** in
+  `capture-nanos-20261119-190927.vgk`, where the 1.12 SESSION_START decodes cleanly as
+  `01 00 19 00 10000221 04 "1.12" 04 f4d8aa43 04 "0.11" 04 f1308974` — version "1.12", bootloader load key id
+  `f4d8aa43`, bootloader version "0.11", SEPH sign key id `f1308974` (earlier captures had this packet mangled,
+  so the ids were first pinned via ECDSA recovery and the Nano X). Both ids are the *same ones the Nano X sends* (its
   SESSION_START blob `…04f4d8aa4304312e313604f1308974…` pairs bootloader "2.28"→`f4d8aa43` and app
   "1.16"→`f1308974`): the Nano S 1.12 and Nano X MCUs share their bootloader and app signing keys. The
   key id being the pubkey tail also confirms these ids (long treated as opaque in the Nano X capture) are
@@ -215,6 +219,25 @@ That boot reports **SEPROXYHAL version 1.12, MCU bootloader 0.11**, and the host
 | MCU 1.1 | (cap. 4) | 0x7fb0 | 71 bytes | `ff…` | **Ledger root of trust** (public releases) |
 | MCU 1.6 | (cap. 1) | 0x7fb8 | 70 bytes | `ff ff` | other Ledger key (unknown) |
 | MCU 1.12 | 1.6.0 | 0x7fb8 | 71 bytes | `ff` | Ledger MCU-app key, id `f1308974` (= Nano X app key) |
+
+### SE 2.1.0 vs 1.6.0: no change on the MCU link
+
+`capture-nanos-20261119-190927.vgk` captures one unit being updated from SE 1.6.0 to **SE 2.1.0** while the MCU
+stays at 1.12, so the two SE OSes can be compared boot-for-boot against the same MCU. On the SE↔MCU link the
+behaviour is unchanged; the only wire-visible difference is at the host/dashboard APDU layer:
+
+- **`GET_VERSION` gains a field.** SE 1.6.0 answers 20 bytes ending at `MCU 1.12`
+  (`3110 0004 05"1.6.0" 04 23000000 04"1.12"`); SE 2.1.0 answers 25 bytes with one more length-prefixed field,
+  `"0.11"` — the **MCU bootloader version** (`… 04"2.1.0" … 04"1.12" 04"0.11"`). So 2.1.0 surfaces the
+  bootloader version to the host, matching what the SESSION_START already carries.
+- **Flash verification is identical.** Both OSes run the same `UNSEC_CHUNK_READ_EXT` sequence (one kind-4
+  request → signed length `0x7fb8`, then 144 kind-2 offset reads), and both reconstruct MCU 1.12 with full
+  coverage, **byte-for-byte equal to `mcu_firmware/mcu_nanos_1.12.bin`** — a third independent confirmation of
+  that image.
+- **Same boot handshake and setup.** `SET_SCREEN_CONFIG` (power on, 20%), `SET_TICKER_INTERVAL` (100 ms),
+  `USB_CONFIG`/`USB_EVENT reset`, and the `MCU lock` command are issued identically; no new SEPROXYHAL tags
+  appear under 2.1.0. (`SE_POWER_OFF` is present in the capture but belongs to the updater/reboot flow, not to
+  2.1.0 specifically.) The SESSION_START is unchanged because it is MCU-driven and the MCU is still 1.12.
 
 ## Match against the official release images
 
