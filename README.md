@@ -173,12 +173,12 @@ A logic analyzer capture of CLK, I/O and RST on a working Nano S is decoded in
   link; the flash ends with a secp256k1 ECDSA signature over SHA-256 of the
   image. The captured **MCU 1.0 and 1.1 images are byte-for-byte Ledger's
   public `nanosr1`/`nanosr11` releases**, both signed under Ledger's documented
-  root-of-trust key (1.0 and 1.1 share the same bootloader); MCU 1.6 and 1.12
-  are signed with other Ledger keys (1.12's is the same MCU-app key the Nano X
-  uses, id `f1308974`; 1.6's is still unidentified).
-  `tools/mcu_flash_from_seph.py` rebuilds the image from a capture; the
-  reconstructed images (needed for interoperability with the SE) are in
-  [`mcu_firmware/`](mcu_firmware/).
+  root-of-trust key (1.0 and 1.1 share the same bootloader). The signing key
+  then moves twice: **key A** signs MCU 1.4/1.5/1.6, and **key B** (id
+  `f1308974`, the same MCU-app key the Nano X uses) signs MCU 1.7/1.11/1.12.
+  Eight full images — all signature-verified — are in
+  [`mcu_firmware/`](mcu_firmware/), reconstructed either from captures
+  (`tools/mcu_flash_from_seph.py`) or from dumped loadables (bootloader + app).
 
 ## Back side / test access
 

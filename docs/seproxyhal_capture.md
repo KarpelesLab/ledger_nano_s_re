@@ -282,16 +282,53 @@ of what was signed but is not distributed.
   that it is also the common key of two different releases confirms the curve (secp256k1) and the message
   (SHA-256 of the full flash from 0 to the signed length).
 
-- **Devices 1 and 6 use a different key.** The MCU 1.6 and MCU 1.12 signatures do **not** verify under the
-  root-of-trust key, and they share no recovered key with each other. So these units are signed with other
-  Ledger key(s), and MCU 1.6 and 1.12 use different keys again — consistent with a key change around
-  the 1.4 rework of MCU authentication. The **1.12 key is now known**: the SESSION_START key id `f1308974`
-  pins it to the second recovery candidate above (`04 d1152ea5…a086f1308974`), the same MCU-app key the
-  Nano X uses. The **1.6 key** is still unresolved: its SESSION_START uses the older format (version string
-  only, no key-id fields), so there is no id to compare against its two recovery candidates. Pinning it down
-  needs two full-flash captures of the *same* MCU version, or Ledger publishing the key.
+- **After 1.1 the signing key moves twice — now fully resolved.** Dumped loadables for the intermediate
+  versions (plus their bootloaders) let every signature be reconstructed and verified (see
+  [Loadable container format](#loadable-container-format)). The picture:
+
+  | MCU | Bootloader | Signing key |
+  |---|---|---|
+  | 1.0, 1.1 | pre-0.6 | **root of trust** `04 90f5c9d1…dad609` |
+  | 1.4, 1.5, 1.6 | 0.6, 0.6, 0.7 | **key A** `04 317fa61a…be158dd84` |
+  | 1.7, 1.11, 1.12 | 0.9, 0.11, 0.11 | **key B** `04 d1152ea5…a086f1308974` (id `f1308974`, = Nano X) |
+
+  Key A is the common recovery of the 1.4, 1.5 and 1.6 signatures (1.4/1.5 with bootloader 0.6, 1.6 with its own
+  bootloader 0.7) — a three-way match that also **disambiguates 1.6's two recovery candidates**. Key B is pinned
+  for 1.12 by its SESSION_START key id `f1308974` and recovers identically for 1.7 and 1.11, placing the A→B
+  change between 1.6 and 1.7. The 1.6 key was previously unresolved (its SESSION_START is the older format with
+  no key-id field); the dumped loadables resolve it.
 
 - There are no release images in that repository for MCU 1.6 or 1.12 (it stops at 1.1).
+
+## Loadable container format
+
+Beyond the full-flash captures, a set of MCU firmware was dumped in Ledger's **loadable/update container** form
+(the `mcu_nanos_*` app loadables and `bootloader_nanos_*` bootloader loadables in [`mcu_firmware/`](../mcu_firmware/)).
+These are not flat flash images; decoding the container let the remaining versions be reconstructed and their
+signatures verified. What the dumps showed:
+
+- **Flash layout.** The MCU bootloader occupies **flash 0x0000–0x3000** up to bootloader 0.9, and grows to
+  **0x0000–0x3800** from bootloader 0.11 on; the seproxyhal app follows (0x3000 or 0x3800) to 0x8000. The app's
+  first word in flash is the marker `F00DBABE` (seen directly in the full 1.6 image at 0x3000), not a stack
+  pointer. The whole flash from 0 to the signed length (0x7fb8 for these versions) is signed.
+
+- **Two container generations.**
+  - *`F00DBABE` container* (bootloaders 0.6/0.7/0.9, apps 1.4/1.5/1.7): starts with the `F00DBABE` marker, the
+    reset vector, then a ~52-byte header block that is **byte-for-byte identical across every version** (a
+    container header, not code). An **app** loadable is just the app region `flash[0x3000:0x8000]` with that
+    marker as its first word, signature inline at 0x4fb8 (= flash 0x7fb8). A **bootloader** loadable carries the
+    installed bootloader at offset **0xa38**: `loadable[0xa38 : 0xa38+0x3000] = flash[0x0:0x3000]`.
+  - *later container* (bootloader 0.11, app 1.11): no `F00DBABE` marker. The bootloader loadable carries the
+    installed bootloader at offset **0xe3c** (`[0xe3c : 0xe3c+0x3800] = flash[0x0:0x3800]`); the app loadable is
+    the app region `flash[0x3800:0x7fb8]` followed by the signature.
+
+- **Verification anchors.** `bootloader_nanos_0.7.bin[0xa38:]` reproduces the bootloader of the verified full
+  `mcu_nanos_1.6.bin` (0x0–0x3000) exactly, and `bootloader_nanos_0.11.bin[0xe3c:]` reproduces that of
+  `mcu_nanos_1.12.bin` (0x0–0x3800) exactly — fixing the header offsets. Reassembling
+  `bootloader + app loadable` for 1.4, 1.5, 1.7 and 1.11 and hashing `flash[0:0x7fb8]` yields signatures that
+  recover the keys in the table above (key A for 1.4/1.5, key B for 1.7/1.11), which both verifies the
+  reconstructions and identifies the keys. Those reassembled 32 KB images are the `mcu_nanos_1.4/1.5/1.7/1.11.bin`
+  files in [`mcu_firmware/`](../mcu_firmware/).
 
 ## Other MCU 1.6 images (jasonbhwong/Ledger)
 
