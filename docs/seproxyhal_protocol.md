@@ -161,5 +161,7 @@ The protocol is just transport; the interesting content rides on top:
 - **APDUs:** host↔SE APDUs are reassembled from the USB HID reports (Ledger transport framing, channel +
   `0x05` + sequence + length). Dashboard commands seen: `GET_VERSION`, `VALIDATE_TARGET_ID`,
   `INITIALIZE_AUTHENTICATION`, `VALIDATE_CERTIFICATE`, `ONBOARD`.
+  The HID framing, every dashboard command, the secure channel and the MCU bootloader's APDUs are documented
+  in [usb_apdu_protocol.md](usb_apdu_protocol.md).
 - **MCU flash check:** the `UNSEC_CHUNK_*` exchange lets the SE read and verify the MCU firmware signature at
   every boot (see [seproxyhal_capture.md](seproxyhal_capture.md)).
